@@ -76,6 +76,7 @@ observability = { workspace = true, optional = true }
 ordermap.workspace = true
 nsm-nitro-enclave-utils = { version = "0.1.2", features = ["pki"], optional = true }
 p384.workspace = true
+paste.workspace = true
 rand = { workspace = true, features = ["std", "std_rng"] }
 rasn.workspace = true
 rasn-cms.workspace = true

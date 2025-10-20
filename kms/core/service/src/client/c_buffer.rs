@@ -13,6 +13,33 @@ use crate::client::c_utils::get_mut_checked;
 use std::ffi::c_int;
 
 #[repr(C)]
+pub struct DynamicBufferView {
+    pub pointer: *const u8,
+    pub length: usize,
+}
+
+impl DynamicBufferView {
+    /// Returns a view to the memory borrowed by the [`DynamicBufferView`].
+    ///
+    /// # Safety
+    ///
+    /// This is safe to call as long as the pointer is valid and the length corresponds to the
+    /// length of the underlying buffer.
+    pub unsafe fn as_slice(&self) -> &[u8] {
+        std::slice::from_raw_parts(self.pointer, self.length)
+    }
+}
+
+impl From<&[u8]> for DynamicBufferView {
+    fn from(a: &[u8]) -> Self {
+        Self {
+            pointer: a.as_ptr(),
+            length: a.len(),
+        }
+    }
+}
+
+#[repr(C)]
 pub struct DynamicBuffer {
     pub pointer: *mut u8,
     pub length: usize,

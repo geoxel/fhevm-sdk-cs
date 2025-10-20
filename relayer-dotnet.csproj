@@ -8,6 +8,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Reference Include="fhe-dotnet">
+      <HintPath>../fhe-dotnet/bin/$(Configuration)/$(TargetFramework)/$(RuntimeIdentifier)/fhe-dotnet.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
   <PropertyGroup Condition="$([System.OperatingSystem]::IsMacOS())">
     <RuntimeIdentifier>osx-arm64</RuntimeIdentifier>
   </PropertyGroup>

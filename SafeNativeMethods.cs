@@ -28,9 +28,42 @@ internal static partial class SafeNativeMethods
 
     [LibraryImport(LibraryPath)]
     public static partial int TKMS_ml_kem_pke_pk_to_u8vec(nint public_key, out DynamicBuffer buffer);
-
     [LibraryImport(LibraryPath)]
     public static partial int TKMS_ml_kem_pke_sk_to_u8vec(nint keys, out DynamicBuffer buffer);
+
+    [LibraryImport(LibraryPath)]
+    public static partial int TKMS_u8vec_to_ml_kem_pke_pk(DynamicBufferView buffer_view, out nint key);
+    [LibraryImport(LibraryPath)]
+    public static partial int TKMS_u8vec_to_ml_kem_pke_sk(DynamicBufferView buffer_view, out nint key);
+
+    [LibraryImport(LibraryPath, EntryPoint = "TKMS_public_enc_key_ml_kem512_destroy")]
+    public static partial int TKMS_PublicEncKeyMlKem512_destroy(nint key);
+    [LibraryImport(LibraryPath, EntryPoint = "TKMS_private_enc_key_ml_kem512_destroy")]
+    public static partial int TKMS_PrivateEncKeyMlKem512_destroy(nint key);
+
+    [LibraryImport(LibraryPath, EntryPoint = "TKMS_new_server_id_addr")]
+    public static partial int TKMS_NewServerIdAddr(
+        uint id,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string addr,
+        out nint out_server_id_addr);
+
+    [LibraryImport(LibraryPath, EntryPoint = "TKMS_server_id_addr_destroy")]
+    public static partial int TKMS_ServerIdAddr_destroy(nint server_id_addr);
+
+    [LibraryImport(LibraryPath, EntryPoint = "TKMS_new_client")]
+    public static partial int TKMS_NewClient(
+        nint server_addrs,
+        int server_addrs_len,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string client_address_hex,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string fhe_parameter,
+        out nint out_client);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DynamicBufferView
+    {
+        public nint pointer;
+        public nint length;
+    };
 
     [StructLayout(LayoutKind.Sequential)]
     public struct DynamicBuffer
