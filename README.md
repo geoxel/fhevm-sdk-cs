@@ -4,19 +4,19 @@
 
 
 
-## What is C# FHEVM SDK ?
+# What is C# FHEVM SDK ?
 
 Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sepolia blockchain.
 
-## Requirements
+# Requirements
 
 First, a Rust environment is required: go to https://rust-lang.org/tools/install/ and install the Rust toolchain.
 
 Then go to https://dotnet.microsoft.com/en-us/download/dotnet/10.0 and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
 
-## How to install
+# How to install
 
-### Step 1
+## Step 1
  
 Retrieve the forked TFHE repo and build it with the c-api feature. The fork just adds the "safe" serialization of `ProvenCompactCiphertextList`. (I lost so many hours figuring out that "safe serialization" was absolutely different from "serialization")
 The branch commit is based on the tfhe-rs `release/1.3.x` branch.
@@ -28,7 +28,7 @@ $ RUSTFLAGS="-C target-cpu=native" cargo +nightly build --release --features=hig
 $ cd ..
 ```
 
-- Step 2
+## Step 2
 
 Retrieve the forked KMS repo that includes the new c-api interop, enabled by the kms-c-api Rust feature.
 The commit is based on the KMS `release/v0.11.x` branch.
@@ -40,14 +40,14 @@ $ (cd core/service && RUSTFLAGS="-C target-cpu=native" cargo build --release --l
 $ cd ..
 ```
 
-- Step 3
+## Step 3
 
 Finally, retrieve this repo.
 ```bash
 $ git clone https://github.com/geoxel/fhevm-sdk-cs.git
 $ cd fhevm-sdk-cs
 ```
-## Testing
+### Testing
 You should have followed the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deployed a simple `Counter.sol` contract on the Sepolia blockchain.
 The contract address has been set in `Config.json` as well as your user address. You can also set the ETH private key as well as the Infura API key in this file. (or not, in this case you have to enter them as shown below)
 
