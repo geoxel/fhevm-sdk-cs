@@ -3,7 +3,7 @@ Building a .NET C# interop on the KMS library and doing some relayer-sdk things 
 ## Setup
 
 Retrieve the forked TFHE repo and build it with the c-api feature. The fork just adds the "safe" serialization of `ProvenCompactCiphertextList`. (I lost so many hours figuring out that "safe serialization" was absolutely different from "serialization")
-The branh commit is based on the last `release/1.3.x` branch.
+The branch commit is based on the tfhe-rs `release/1.3.x` branch.
 ```bash
 $ git clone https://github.com/geoxel/tfhe-rs.git
 $ cd tfhe-rs
@@ -12,7 +12,7 @@ $ RUSTFLAGS="-C target-cpu=native" cargo +nightly build --release --features=hig
 $ cd ..
 ```
 Retrieve the forked KMS repo that includes the new c-api interop, enabled by the kms-c-api Rust feature.
-The commit is based on the last `release/v0.11.x` branch.
+The commit is based on the KMS `release/v0.11.x` branch.
 ```bash
 $ git clone https://github.com/geoxel/kms.git
 $ cd kms
