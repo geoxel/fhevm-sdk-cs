@@ -1,3 +1,5 @@
+![zama-csharp](https://github.com/user-attachments/assets/c5854a2f-a103-4891-a4a1-7fbb336ca97e)
+
 Building a C# FHEVM SDK for .NET
 
 Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sepolia blockchain.
