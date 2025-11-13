@@ -1,12 +1,12 @@
-Building a C# FHEVM client SDK proposal for .NET
+Building a C# FHEVM SDK for .NET
 
 Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sepolia blockchain.
 
-## Software Setup
+## How to install
 
-First, a Rust environment is required: go to `https://rust-lang.org/tools/install/` and install the Rust toolchain.
+First, a Rust environment is required: go to https://rust-lang.org/tools/install/ and install the Rust toolchain.
 
-Then go to `https://dotnet.microsoft.com/en-us/download/dotnet/10.0` and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
+Then go to https://dotnet.microsoft.com/en-us/download/dotnet/10.0 and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
 
 ## Repositories Setup
 
@@ -34,7 +34,7 @@ $ git clone https://github.com/geoxel/fhevm-sdk-cs.git
 $ cd fhevm-sdk-cs
 ```
 ## Testing
-You should have followed the `https://docs.zama.org/protocol/solidity-guides/getting-started/setup` tutorial and deployed a simple `Counter.sol` contract on the Sepolia blockchain.
+You should have followed the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deployed a simple `Counter.sol` contract on the Sepolia blockchain.
 The contract address has been set in `Config.json` as well as your user address. You can also set the ETH private key as well as the Infura API key in this file. (or not, in this case you have to enter them as shown below)
 
 Let's print the current FHE Counter handle:
