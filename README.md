@@ -47,7 +47,7 @@ Finally, retrieve this repo.
 $ git clone https://github.com/geoxel/fhevm-sdk-cs.git
 $ cd fhevm-sdk-cs
 ```
-### Testing
+# Run
 You should have followed the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deployed a simple `Counter.sol` contract on the Sepolia blockchain.
 The contract address has been set in `Config.json` as well as your user address. You can also set the ETH private key as well as the Infura API key in this file. (or not, in this case you have to enter them as shown below)
 
