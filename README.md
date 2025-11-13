@@ -10,9 +10,13 @@ Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sep
 
 # Requirements
 
-First, a Rust environment is required: go to https://rust-lang.org/tools/install/ and install the Rust toolchain.
+- A Rust environment is required: go to https://rust-lang.org/tools/install/ and install the Rust toolchain.
 
-Then go to https://dotnet.microsoft.com/en-us/download/dotnet/10.0 and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
+- .NET : go to https://dotnet.microsoft.com/en-us/download/dotnet/10.0 and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
+
+- Infura Key : go to MetaMask website.
+
+- Follow the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deployed a simple `Counter.sol` contract.
 
 # How to install
 
@@ -54,7 +58,7 @@ Description:
   Simple FHECounter client app on Sepolia
 
 Usage:
-  FHECounterClient [command] [options]
+  dotnet run [command] [options]
 
 Options:
   -?, -h, --help  Show help and usage information
