@@ -56,7 +56,6 @@ public static class Eip712
             new MemberValue { TypeName = "bytes", Value = Helpers.Ensure0xPrefix(publicKey) }, // publicKey
             new MemberValue { TypeName = "address[]", Value = contractAddresses }, // contractAddresses
             new MemberValue { TypeName = "uint256", Value = fhevmConfig.ChainId }, // contractsChainId
-            //new MemberValue { TypeName = "uint256", Value = 1760000000 }, // startTimestamp TODO-SRE
             new MemberValue { TypeName = "uint256", Value = Helpers.DataTimeToTimestamp(startTime) },
             new MemberValue { TypeName = "uint256", Value = durationDays }, // durationDays
             new MemberValue { TypeName = "bytes", Value = extraData }, // extraData 
