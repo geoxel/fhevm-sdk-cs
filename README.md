@@ -2,13 +2,14 @@
 <img " width="422" height="88" alt="zama-csharp" src="https://github.com/user-attachments/assets/3a529c67-7ca3-4298-85a7-23fc070b257f" />
 </p>
 
-
-
 # What is C# FHEVM SDK ?
 
-Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sepolia blockchain.
+C# FHEVM SDK can encrypt and decrypt FHE handles values on the Sepolia blockchain.
 
 # Requirements
+
+> [!WARNING]
+> This client only runs on FHEVM v8 (TFHE-RS 1.3.x and KMS 0.11.x). It will be soon adpated to v9.
 
 - A Rust environment is required: go to https://rust-lang.org/tools/install/ and install the Rust toolchain.
 
@@ -24,7 +25,7 @@ Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sep
 
 ## Step 1
  
-Retrieve the forked TFHE repo and build it with the c-api feature. The fork just adds the "safe" serialization of `ProvenCompactCiphertextList`. (I lost so many hours figuring out that "safe serialization" was absolutely different from "serialization")
+Retrieve the forked TFHE-RS repo and build it with the c-api feature. The fork just adds the "safe" serialization of `ProvenCompactCiphertextList`. (I lost so many hours figuring out that "safe serialization" was absolutely different from "serialization")
 The branch commit is based on the tfhe-rs `release/1.3.x` branch.
 ```bash
 $ git clone https://github.com/geoxel/tfhe-rs.git
