@@ -16,7 +16,7 @@ Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sep
 
 - Infura Key : go to the MetaMask website.
 
-- Follow the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deploy a `FHECounter.sol` contract: https://docs.zama.org/protocol/solidity-guides/getting-started/quick-start-tutorial/turn_it_into_fhevm#create-the-fhecounter.sol-file
+- Follow the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deploy a `FHECounter.sol` contract.
 
 - To deploy a FHECounter, clone the https://github.com/zama-ai/fhevm-hardhat-template repository.
 
@@ -71,6 +71,32 @@ Commands:
   decrypt-counter-value  Decrypt and print FHE counter value.
   increment              Increment counter.
   decrement              Decrement counter.
+```
+The deployed `FHECounter.sol` contract is:
+```solidity
+// SPDX-License-Identifier: BSD-3-Clause-Clear
+pragma solidity ^0.8.24;
+
+/// @title A simple counter contract
+contract Counter {
+  uint32 private _count;
+
+  /// @notice Returns the current count
+  function getCount() external view returns (uint32) {
+    return _count;
+  }
+
+  /// @notice Increments the counter by a specific value
+  function increment(uint32 value) external {
+    _count += value;
+  }
+
+  /// @notice Decrements the counter by a specific value
+  function decrement(uint32 value) external {
+    require(_count >= value, "Counter: cannot decrement below zero");
+    _count -= value;
+  }
+}
 ```
 
 You should have followed the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deployed a simple `Counter.sol` contract on the Sepolia blockchain.
