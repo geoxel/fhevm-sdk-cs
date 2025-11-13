@@ -2,9 +2,9 @@
 <img " width="422" height="88" alt="zama-csharp" src="https://github.com/user-attachments/assets/3a529c67-7ca3-4298-85a7-23fc070b257f" />
 </p>
 
-<hr>
 
-Building a C# FHEVM SDK for .NET
+
+## What is C# FHEVM SDK ?
 
 Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sepolia blockchain.
 
@@ -16,7 +16,7 @@ Then go to https://dotnet.microsoft.com/en-us/download/dotnet/10.0 and install t
 
 ## How to install
 
-- Step 1
+### Step 1
  
 Retrieve the forked TFHE repo and build it with the c-api feature. The fork just adds the "safe" serialization of `ProvenCompactCiphertextList`. (I lost so many hours figuring out that "safe serialization" was absolutely different from "serialization")
 The branch commit is based on the tfhe-rs `release/1.3.x` branch.
