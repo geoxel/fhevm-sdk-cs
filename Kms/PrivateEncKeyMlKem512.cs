@@ -1,9 +1,6 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿namespace RelayerSDK.Kms;
 
-namespace RelayerSDK;
-
-public sealed class PrivateEncKeyMlKem512 : KMSHandle
+public sealed class PrivateEncKeyMlKem512 : KmsHandle
 {
     private PrivateEncKeyMlKem512(nint handle) : base(handle)
     {
@@ -18,24 +15,13 @@ public sealed class PrivateEncKeyMlKem512 : KMSHandle
         return new PrivateEncKeyMlKem512(private_key);
     }
 
-    public byte[] GetPublicKeyData()
+    public byte[] Serialize()
     {
-        SafeNativeMethods.TKMS_ml_kem_pke_get_pk(Handle, out nint public_key); // TODO: free public key?
+        CheckError(SafeNativeMethods.TKMS_ml_kem_pke_sk_to_u8vec(Handle, out SafeNativeMethods.DynamicBuffer buffer));
+        
+        using DynamicBuffer dynamicbuffer = new(buffer);
 
-        int error = SafeNativeMethods.TKMS_ml_kem_pke_pk_to_u8vec(public_key, out SafeNativeMethods.DynamicBuffer buffer);
-        if (error != 0)
-            throw new FheException(error);
-
-        return SafeNativeMethods.DynamicBuffer_ToArray(buffer);
-    }
-
-    public byte[] GetPrivateKeyData()
-    {
-        int error = SafeNativeMethods.TKMS_ml_kem_pke_sk_to_u8vec(Handle, out SafeNativeMethods.DynamicBuffer buffer);
-        if (error != 0)
-            throw new FheException(error);
-
-        return SafeNativeMethods.DynamicBuffer_ToArray(buffer);
+        return dynamicbuffer.ToArray();
     }
 
     public static unsafe PrivateEncKeyMlKem512 Deserialize(byte[] data)

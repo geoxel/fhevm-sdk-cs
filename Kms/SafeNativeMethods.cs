@@ -1,7 +1,6 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
-namespace RelayerSDK;
+namespace RelayerSDK.Kms;
 
 internal static partial class SafeNativeMethods
 {
@@ -15,10 +14,10 @@ internal static partial class SafeNativeMethods
     private const string LibraryPrefix = "lib";
     private const string LibraryExtension = ".dylib";
 #else
-#error Unsupported platform
+#error "Unsupported platform"
 #endif
 
-    private const string LibraryPath = "kms/target/release/" + LibraryPrefix + "kms_lib" + LibraryExtension;
+    private const string LibraryPath = "../kms/target/release/" + LibraryPrefix + "kms_lib" + LibraryExtension;
 
     [LibraryImport(LibraryPath)]
     public static partial int TKMS_ml_kem_pke_keygen(out nint keys);
@@ -43,10 +42,9 @@ internal static partial class SafeNativeMethods
 
     [LibraryImport(LibraryPath, EntryPoint = "TKMS_new_server_id_addr")]
     public static partial int TKMS_NewServerIdAddr(
-        uint id,
+        int id,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string addr,
         out nint out_server_id_addr);
-
     [LibraryImport(LibraryPath, EntryPoint = "TKMS_server_id_addr_destroy")]
     public static partial int TKMS_ServerIdAddr_destroy(nint server_id_addr);
 
@@ -57,6 +55,23 @@ internal static partial class SafeNativeMethods
         [MarshalAs(UnmanagedType.LPUTF8Str)] string client_address_hex,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string fhe_parameter,
         out nint out_client);
+    [LibraryImport(LibraryPath, EntryPoint = "TKMS_client_destroy")]
+    public static partial int TKMS_Client_destroy(nint client);
+
+    [LibraryImport(LibraryPath, EntryPoint = "TKMS_process_user_decryption_resp_from_cs")]
+    public static unsafe partial int TKMS_process_user_decryption_resp_from_cs(
+        nint client,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string payloadForVerification,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string eip712_domain_json,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string agg_resp_json,
+        nint enc_pk,
+        nint enc_sk,
+        [MarshalAs(UnmanagedType.U1)] bool verify,
+        out nint cstr);
+
+    // Note: cstr can be null
+    [LibraryImport(LibraryPath)]
+    public static unsafe partial void TKMS_free_CString(nint cstr);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct DynamicBufferView
@@ -73,22 +88,15 @@ internal static partial class SafeNativeMethods
         public nint destructor;
     };
 
-    internal static byte[] DynamicBuffer_ToArray(DynamicBuffer buffer)
+    public static byte[] DynamicBuffer_ToArray(DynamicBuffer buffer)
     {
-        try
-        {
-            const int MaxArraySize = 0x7FFFFFC7;
-            if (buffer.length > MaxArraySize)
-                throw new FheException(1); // TODO: use a better error code
+        const int MaxArraySize = 0x7FFFFFC7;
+        if (buffer.length > MaxArraySize)
+            throw new KmsException(1); // TODO: use a better error code
 
-            var result = new byte[(int)buffer.length];
-            Marshal.Copy(buffer.pointer, result, 0, result.Length);
-            return result;
-        }
-        finally
-        {
-            DynamicBuffer_Destroy(ref buffer);
-        }
+        var result = new byte[(int)buffer.length];
+        Marshal.Copy(buffer.pointer, result, 0, result.Length);
+        return result;
     }
 
     [LibraryImport(LibraryPath, EntryPoint = "destroy_dynamic_buffer")]

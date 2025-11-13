@@ -1,44 +1,127 @@
-Building a .NET C# interop on the KMS library and do some relayer-sdk things in C#.
+Building a .NET C# interop on the KMS library and doing some relayer-sdk things in C#.
 
 ## Setup
 
-Retrieve the TFHE repo and build it with the C API.
+Retrieve the forked TFHE repo and build it with the c-api feature. The fork just adds the "safe" serialization of `ProvenCompactCiphertextList`. (I lost so many hours figuring out that "safe serialization" was absolutely different from "serialization")
+The branh commit is based on the last `release/1.3.x` branch.
 ```bash
-$ git clone https://github.com/zama-ai/tfhe-rs.git
+$ git clone https://github.com/geoxel/tfhe-rs.git
 $ cd tfhe-rs
-$ RUSTFLAGS="-C target-cpu=native" cargo +nightly build --release --features=high-level-c-api -p tfhe
-$ ls -lF target/release
+$ git checkout geoxel/safe_serialization
+$ RUSTFLAGS="-C target-cpu=native" cargo +nightly build --release --features=high-level-c-api,zk-pok -p tfhe
 $ cd ..
 ```
-Retrieve this repo.
+Retrieve the forked KMS repo that includes the new c-api interop, enabled by the kms-c-api Rust feature.
+The commit is based on the last `release/v0.11.x` branch.
 ```bash
-$ git clone https://github.com/geoxel/relayer-csharp.git
-$ cd relayer-csharp
+$ git clone https://github.com/geoxel/kms.git
+$ cd kms
+$ git checkout geoxel/c_api
+$ (cd core/service && RUSTFLAGS="-C target-cpu=native" cargo build --release --lib --features=kms-c-api)
+$ cd ..
 ```
-## Build
-Build the modified KMS lib.
+Finally, retrieve this repo.
 ```bash
-$ (cd kms/core/service/ ; cargo b --release --lib)
+$ git clone https://github.com/geoxel/relayer-sdk-cs.git
+$ cd relayer-sdk-cs
 ```
-Adjustements have been made in:
-```
-kls/core/service/src/client/c_buffer.rs
-kms/core/service/src/client/c_error.rs
-kms/core/service/src/client/c_utils.rs
-kms/core/service/src/client/client_c_api.rs
-kms/core/service/src/client/mod.rs
-```
-TODO: use a kms-c-api feature.
 ## Testing
-Run the .NET app:
+You should have followed the `https://docs.zama.org/protocol/solidity-guides/getting-started/setup` tutorial and deployed a simple `Counter.sol` contract on the Sepolia blockchain.
+The contract address has been set in `Config.json` as well as your user address. You can also set the ETH private key as well as the Infura API key in this file. (or not, in this case you have to enter them as shown below)
+
+Let's print the current FHE Counter handle:
 ```bash
-$ dotnet run -c Release
-Hi relayer.
-private key len = 1640
-6006000000000000443A670498232DDCCEB0C51E39B922A14B023E2349868CBA53...
-public key len = 869
-0300000000000000302E35000000000300000000000000302E3113000000000000...
-Bye relayer.
+$ dotnet run print-counter-handle
+Reading config from file Config.json...
+Enter the ETH private key: ****************************************************************
+Enter the Infura API key: ********************************
+Retrieving FHECounter contract 0x1E585824420EeA85D0576f09Fcf3FfE896d07dAa...
+Counter handle: 0x3da3331e03c1bbd69f1845b4b9d1a39e1b417a9f51ff0000000000aa36a70400 (encrypted type: UInt32)
+```
+Let's decrypt the counter value:
+```bash
+$ dotnet run decrypt-counter-value
+Reading config from file Config.json...
+Enter the ETH private key: ****************************************************************
+Enter the Infura API key: ********************************
+Retrieving FHECounter contract 0x1E585824420EeA85D0576f09Fcf3FfE896d07dAa...
+Generating key pair...
+Creating EIP-712 typed data...
+Signing EIP-712 typed data...
+EIP-712 signature: 0x14e451275532827ed2333b8843d0fe9a9a66c56d23ba72b2c3fb0718b72ec7947c4303b350c78ea294e83efd5889f8781c53d5573d1d41a916b8ce9cbfc85b411c
+Retrieving KMS signers...
+Decrypting handle...
+Success:
+Counter handle: 0x3da3331e03c1bbd69f1845b4b9d1a39e1b417a9f51ff0000000000aa36a70400 (encrypted type: UInt32)
+Counter value : 24 (C# type: System.UInt32)```
+```
+Now let's retrieve one (1) from this FHE counter:
+```bash
+$ dotnet run decrement --value 1
+Reading config from file Config.json...
+Enter the ETH private key: ****************************************************************
+Enter the Infura API key: ********************************
+Retrieving keys from Zama server...
+Encrypting input value (1)...
+Encrypted input value handle: 0x2653ef8ab859b85596613ede1da016809c99461ecb000000000000aa36a70400
+Encrypted input value proof: 01012653ef8ab859b85596613ede1da016809c99461ecb000000000000aa36a704005c82e7243cde65690fa5834f3dfc49cbb4aeff8d11f00f58108b806d5b36846068280e4f57c4c0dd5bb840d17b6bfdd8e7457b87ca2dd7ae4c499d41ebc6244b1b00
+Retrieving FHECounter contract 0x1E585824420EeA85D0576f09Fcf3FfE896d07dAa...
+Calling decrement() function...
+Transaction hash: 0x6792828955e7a8afc4a70f766feca4bf38685bfc61192d6d937590e4ebf55fc4
+Block number: 9623455
+Gas used: 208393
+New FHE Counter handle: 0xb5377b379a0060ebbf593dbc2c7a9d0deab053636eff0000000000aa36a70400
+```
+And let's decrypt and print the new value:
+```bash
+$ dotnet run decrypt-counter-value
+Reading config from file Config.json...
+Enter the ETH private key: ****************************************************************
+Enter the Infura API key: ********************************
+Retrieving FHECounter contract 0x1E585824420EeA85D0576f09Fcf3FfE896d07dAa...
+Generating key pair...
+Creating EIP-712 typed data...
+Signing EIP-712 typed data...
+EIP-712 signature: 0x85a3bc5a77e94b01b826202eecf82396d969092f8eba57143a508f07603ef7296cc030d30a897d02e4a1d29d5eb3d1d52c8d4b365f5667696856c76c44436a201c
+Retrieving KMS signers...
+Decrypting handle...
+Success:
+Counter handle: 0xb5377b379a0060ebbf593dbc2c7a9d0deab053636eff0000000000aa36a70400 (encrypted type: UInt32)
+Counter value : 23 (C# type: System.UInt32)
+```
+Finally let's add back one (1) to the FHE counter:
+```bash
+$ dotnet run increment --value 1
+Reading config from file Config.json...
+Enter the ETH private key: ****************************************************************
+Enter the Infura API key: ********************************
+Retrieving keys from Zama server...
+Encrypting input value (1)...
+Encrypted input value handle: 0xf5e2e57e6586e35fa7532ecd98d3c44ea2c2623451000000000000aa36a70400
+Encrypted input value proof: 0101f5e2e57e6586e35fa7532ecd98d3c44ea2c2623451000000000000aa36a70400b56d3b161118105da4f11d0af1812e2c6639d0b9c811602d1133ab8f01c36d8d16dbc58ed67fd59540630f18feea6dbb597374069c128031dc12b16978b724681c00
+Retrieving FHECounter contract 0x1E585824420EeA85D0576f09Fcf3FfE896d07dAa...
+Calling increment() function...
+Transaction hash: 0x15637b0bb7e538896c6967c10c34f9e8494c642fa610dd8b0d1ae8e7cd9f778c
+Block number: 9623468
+Gas used: 208313
+New FHE Counter handle: 0x41c58865b85819f0dc96bbd3f669a56d1506b7c379ff0000000000aa36a70400
+```
+And check back the counter value:
+```bash
+$ dotnet run decrypt-counter-value
+Reading config from file Config.json...
+Enter the ETH private key: ****************************************************************
+Enter the Infura API key: ********************************
+Retrieving FHECounter contract 0x1E585824420EeA85D0576f09Fcf3FfE896d07dAa...
+Generating key pair...
+Creating EIP-712 typed data...
+Signing EIP-712 typed data...
+EIP-712 signature: 0x3364aa91e31dc3c6ed361bbe86dbbda7afaa1c152faa22ff3a732bf9ef157f2309adcfb0d94bf6e0d4b92682cfe49c07684c863c034b94a934e1dd96f898af771b
+Retrieving KMS signers...
+Decrypting handle...
+Success:
+Counter handle: 0x41c58865b85819f0dc96bbd3f669a56d1506b7c379ff0000000000aa36a70400 (encrypted type: UInt32)
+Counter value : 24 (C# type: System.UInt32)
 ```
 
 *What a time to be alive!*
