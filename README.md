@@ -14,9 +14,11 @@ Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sep
 
 - .NET : go to https://dotnet.microsoft.com/en-us/download/dotnet/10.0 and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
 
-- Infura Key : go to MetaMask website.
+- Infura Key : go to the MetaMask website.
 
-- Follow the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deployed a simple `Counter.sol` contract.
+- Follow the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deploy a `FHECounter.sol` contract.
+
+- To deploy a FHECounter, clone the https://github.com/zama-ai/fhevm-hardhat-template repository.
 
 # How to install
 
