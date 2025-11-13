@@ -99,7 +99,7 @@ contract Counter {
 }
 ```
 
-You should have followed the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deployed a simple `Counter.sol` contract on the Sepolia blockchain.
+You should have followed the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deployed the `FHECounter.sol` contract on the Sepolia blockchain.
 The contract address has been set in `Config.json` as well as your user address. You can also set the ETH private key as well as the Infura API key in this file. (or not, in this case you have to enter them as shown below)
 
 Let's print the current FHE Counter handle:
