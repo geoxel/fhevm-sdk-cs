@@ -1,6 +1,14 @@
-Building a .NET C# interop on the KMS library and doing some fhevm-sdk things in C#.
+Building a C# FHEVM client SDK proposal for .NET
 
-## Setup
+Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sepolia blockchain.
+
+## Software Setup
+
+First, a Rust environment is required: go to `https://rust-lang.org/tools/install/` and install the Rust toolchain.
+
+Then go to `https://dotnet.microsoft.com/en-us/download/dotnet/10.0` and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
+
+## Repositories Setup
 
 Retrieve the forked TFHE repo and build it with the c-api feature. The fork just adds the "safe" serialization of `ProvenCompactCiphertextList`. (I lost so many hours figuring out that "safe serialization" was absolutely different from "serialization")
 The branch commit is based on the tfhe-rs `release/1.3.x` branch.
