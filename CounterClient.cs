@@ -362,7 +362,7 @@ public static class CounterClient
             return 1;
         }
 
-        RootCommand rootCommand = new("Simple THECounter client app on Sepolia");
+        RootCommand rootCommand = new("Simple FHECounter client app on Sepolia");
 
         Option<int> valueOption = new("--value")
         {
