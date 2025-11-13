@@ -1,4 +1,0 @@
-# .cargo/config.toml
-[net]
-git-fetch-with-cli = true
-
