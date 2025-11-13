@@ -1,4 +1,4 @@
-<img width="844" height="177" alt="zama-csharp2" src="https://github.com/user-attachments/assets/3a529c67-7ca3-4298-85a7-23fc070b257f" />
+<img width="422" height="88" alt="zama-csharp2" src="https://github.com/user-attachments/assets/3a529c67-7ca3-4298-85a7-23fc070b257f" />
 
 Building a C# FHEVM SDK for .NET
 
