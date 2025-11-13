@@ -1,18 +1,20 @@
-<img width="422" height="88" alt="zama-csharp2" src="https://github.com/user-attachments/assets/3a529c67-7ca3-4298-85a7-23fc070b257f" />
+<img width="422" height="88" alt="zama-csharp" src="https://github.com/user-attachments/assets/3a529c67-7ca3-4298-85a7-23fc070b257f" />
+
+
 
 Building a C# FHEVM SDK for .NET
 
 Here is a C# FHEVM SDK, that encrypts and decrypts FHE handles values on the Sepolia blockchain.
 
-## How to install
+## Requirement
 
 First, a Rust environment is required: go to https://rust-lang.org/tools/install/ and install the Rust toolchain.
 
 Then go to https://dotnet.microsoft.com/en-us/download/dotnet/10.0 and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
 
-## Repositories Setup
+## How to install
 
-Retrieve the forked TFHE repo and build it with the c-api feature. The fork just adds the "safe" serialization of `ProvenCompactCiphertextList`. (I lost so many hours figuring out that "safe serialization" was absolutely different from "serialization")
+- Retrieve the forked TFHE repo and build it with the c-api feature. The fork just adds the "safe" serialization of `ProvenCompactCiphertextList`. (I lost so many hours figuring out that "safe serialization" was absolutely different from "serialization")
 The branch commit is based on the tfhe-rs `release/1.3.x` branch.
 ```bash
 $ git clone https://github.com/geoxel/tfhe-rs.git
@@ -21,7 +23,7 @@ $ git checkout geoxel/safe_serialization
 $ RUSTFLAGS="-C target-cpu=native" cargo +nightly build --release --features=high-level-c-api,zk-pok -p tfhe
 $ cd ..
 ```
-Retrieve the forked KMS repo that includes the new c-api interop, enabled by the kms-c-api Rust feature.
+- Retrieve the forked KMS repo that includes the new c-api interop, enabled by the kms-c-api Rust feature.
 The commit is based on the KMS `release/v0.11.x` branch.
 ```bash
 $ git clone https://github.com/geoxel/kms.git
@@ -30,7 +32,7 @@ $ git checkout geoxel/c_api
 $ (cd core/service && RUSTFLAGS="-C target-cpu=native" cargo build --release --lib --features=kms-c-api)
 $ cd ..
 ```
-Finally, retrieve this repo.
+- Finally, retrieve this repo.
 ```bash
 $ git clone https://github.com/geoxel/fhevm-sdk-cs.git
 $ cd fhevm-sdk-cs
