@@ -1,11 +1,10 @@
 ﻿using Fhe;
-using RelayerSDK.Tools;
+using FhevmSDK.Tools;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace RelayerSDK;
-
+namespace FhevmSDK;
 
 public sealed class CompactPublicKeyInfo
 {
@@ -19,7 +18,7 @@ public sealed class PublicParamsInfo
     public required string PublicParamsId { get; init; }
 }
 
-public sealed class RelayerKeys : IDisposable
+public sealed class FhevmKeys : IDisposable
 {
     private readonly ConcurrentDictionary<string, Keys> keyurlCache = new();
 
@@ -85,7 +84,7 @@ public sealed class RelayerKeys : IDisposable
         using HttpClient client = new();
         string json = await client.GetStringAsync($"{relayerUrl}/v1/keyurl");
 
-        Json.Response relayerKeys =
+        Json.Response fhevmKeys =
             JsonSerializer.Deserialize<Json.Container>(json)?.Response
             ?? throw new InvalidOperationException();
 
@@ -96,7 +95,7 @@ public sealed class RelayerKeys : IDisposable
         // same between several calls (fetching the infos is non-deterministic)
         if (publicKeyId == null)
         {
-            Json.FhePublicKey fhePublicKey = relayerKeys.FheKeyInfo[0].FhePublicKey;
+            Json.FhePublicKey fhePublicKey = fhevmKeys.FheKeyInfo[0].FhePublicKey;
 
             pubKeyUrl = fhePublicKey.Urls[0];
             publicKeyId = fhePublicKey.DataId;
@@ -105,7 +104,7 @@ public sealed class RelayerKeys : IDisposable
         {
             // If a publicKeyId is provided, get the corresponding info
             Json.FheKeyInfo keyInfo =
-                relayerKeys.FheKeyInfo.FirstOrDefault(fki => fki.FhePublicKey.DataId == publicKeyId)
+                fhevmKeys.FheKeyInfo.FirstOrDefault(fki => fki.FhePublicKey.DataId == publicKeyId)
                 ?? throw new InvalidDataException($"Could not find FHE key info with data_id {publicKeyId}");
 
             // TODO: Get a given party's public key url instead of the first one
@@ -114,8 +113,8 @@ public sealed class RelayerKeys : IDisposable
 
         byte[] serializedPublicKey = await client.GetByteArrayAsync(pubKeyUrl);
 
-        string publicParamsUrl = relayerKeys.Crs["2048"].Urls[0];
-        string publicParamsId = relayerKeys.Crs["2048"].DataId;
+        string publicParamsUrl = fhevmKeys.Crs["2048"].Urls[0];
+        string publicParamsId = fhevmKeys.Crs["2048"].DataId;
 
         byte[] publicParams2048 = await client.GetByteArrayAsync(publicParamsUrl);
 

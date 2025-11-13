@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RelayerSDK;
+namespace FhevmSDK;
 
 public sealed class HandleContractPair
 {

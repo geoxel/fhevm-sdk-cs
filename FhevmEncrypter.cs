@@ -1,17 +1,17 @@
 ﻿using Fhe;
 using Nethereum.Util;
 using Nethermind.Int256; // https://github.com/NethermindEth/int256/tree/main
-using RelayerSDK.Tools;
+using FhevmSDK.Tools;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace RelayerSDK;
+namespace FhevmSDK;
 
-public sealed class RelayerEncrypter
+public sealed class FhevmEncrypter
 {
     // https://github.com/zama-ai/fhevm-relayer/blob/96151ef300f787658c5fbaf1b4471263160032d5/src/http/input_http_listener.rs#L17
-    private sealed class RelayerInputProofPayload
+    private sealed class FhevmInputProofPayload
     {
         // Hex encoded uint256 string without prefix
         public required string contractChainId { get; init; }
@@ -43,7 +43,7 @@ public sealed class RelayerEncrypter
         }
     }
 
-    public static async Task<RelayerEncryptedValues> Encrypt(
+    public static async Task<FhevmEncryptedValues> Encrypt(
         FhevmConfig fhevmConfig,
         EncryptedValuesBuilder builder,
         PublicParamsInfo publicParams,
@@ -66,7 +66,7 @@ public sealed class RelayerEncrypter
             contractAddress,
             userAddress);
 
-        RelayerInputProofPayload payload = new()
+        FhevmInputProofPayload payload = new()
         {
             contractChainId = $"0x{fhevmConfig.ChainId:X}".ToLower(),
             contractAddress = AddressHelper.GetChecksumAddress(contractAddress),
@@ -162,7 +162,7 @@ public sealed class RelayerEncrypter
             defaultExtraData[2..],
         ]);
 
-        return new RelayerEncryptedValues
+        return new FhevmEncryptedValues
         {
             Handles = handles,
             InputProof = inputProof,

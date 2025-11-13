@@ -2,8 +2,8 @@
 using Nethereum.ABI;
 using Nethereum.ABI.FunctionEncoding;
 using Nethereum.ABI.Model;
-using RelayerSDK.Tools;
-using RelayerSDK.Tools.Json;
+using FhevmSDK.Tools;
+using FhevmSDK.Tools.Json;
 using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Globalization;
@@ -13,7 +13,7 @@ using System.Text;
 using System.Text.Json;
 using System.Runtime.CompilerServices;
 
-namespace RelayerSDK;
+namespace FhevmSDK;
 
 #if ___NOT_FINISHED___
 

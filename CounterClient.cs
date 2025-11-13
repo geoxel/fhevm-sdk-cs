@@ -7,8 +7,8 @@ using Nethereum.Web3;
 using Nethereum.Web3.Accounts;
 using Nethereum.Hex.HexTypes;
 
-using RelayerSDK.Kms;
-using RelayerSDK.Tools;
+using FhevmSDK.Kms;
+using FhevmSDK.Tools;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Configuration.Assemblies;
@@ -19,7 +19,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 
-namespace RelayerSDK;
+namespace FhevmSDK;
 
 public static class CounterClient
 {
@@ -296,8 +296,8 @@ public static class CounterClient
     {
         Console.WriteLine("Retrieving keys from Zama server...");
 
-        using var rk = new RelayerKeys();
-        RelayerKeys.Keys keys = await rk.GetOrDownload(fhevmConfig.RelayerUrl);
+        using var fhevmKeys = new FhevmKeys();
+        FhevmKeys.Keys keys = await fhevmKeys.GetOrDownload(fhevmConfig.RelayerUrl);
 
         Console.WriteLine($"Encrypting input value ({Math.Abs(value)})...");
 
@@ -309,7 +309,7 @@ public static class CounterClient
         using EncryptedValuesBuilder builder = new(keys.CompactPublicKeyInfo);
         builder.PushU32((uint)Math.Abs(value));
 
-        RelayerEncryptedValues encryptedValues = await RelayerEncrypter.Encrypt(
+        FhevmEncryptedValues encryptedValues = await FhevmEncrypter.Encrypt(
             fhevmConfig,
             builder,
             keys.PublicParamsInfo,

@@ -1,4 +1,4 @@
-﻿namespace RelayerSDK;
+﻿namespace FhevmSDK;
 
 public abstract class FhevmConfig
 {

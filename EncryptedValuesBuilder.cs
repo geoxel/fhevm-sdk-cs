@@ -1,10 +1,10 @@
 ﻿using Fhe;
 using Nethereum.Util;
 using Nethermind.Int256; // https://github.com/NethermindEth/int256/tree/main
-using RelayerSDK.Tools;
+using FhevmSDK.Tools;
 using System.Globalization;
 
-namespace RelayerSDK;
+namespace FhevmSDK;
 
 public sealed class EncryptedValuesBuilder : IDisposable
 {

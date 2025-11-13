@@ -1,4 +1,4 @@
-﻿namespace RelayerSDK.Kms;
+﻿namespace FhevmSDK.Kms;
 
 public sealed class Client : KmsHandle
 {

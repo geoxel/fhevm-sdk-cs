@@ -1,4 +1,4 @@
-﻿namespace RelayerSDK.Kms;
+﻿namespace FhevmSDK.Kms;
 
 public abstract class KmsHandle : IDisposable
 {

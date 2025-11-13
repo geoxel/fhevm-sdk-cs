@@ -1,6 +1,6 @@
-﻿namespace RelayerSDK;
+﻿namespace FhevmSDK;
 
-public class RelayerEncryptedValues
+public class FhevmEncryptedValues
 {
     public required string[] Handles { get; init; }
     

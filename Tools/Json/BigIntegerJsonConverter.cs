@@ -3,7 +3,7 @@ using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace RelayerSDK.Tools.Json;
+namespace FhevmSDK.Tools.Json;
 
 public class BigIntegerConverter : JsonConverter<BigInteger>
 {

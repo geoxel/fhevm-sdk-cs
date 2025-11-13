@@ -1,4 +1,4 @@
-﻿namespace RelayerSDK.Tools;
+﻿namespace FhevmSDK.Tools;
 
 public static class Helpers
 {

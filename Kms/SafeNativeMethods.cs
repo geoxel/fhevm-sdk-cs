@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace RelayerSDK.Kms;
+namespace FhevmSDK.Kms;
 
 internal static partial class SafeNativeMethods
 {

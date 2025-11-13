@@ -1,4 +1,4 @@
-﻿namespace RelayerSDK.Tools;
+﻿namespace FhevmSDK.Tools;
 
 public class DisposableList : DisposableOnce
 {

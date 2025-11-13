@@ -1,8 +1,8 @@
 ﻿using Fhe;
-using RelayerSDK.Kms;
-using RelayerSDK.Tools;
+using FhevmSDK.Kms;
+using FhevmSDK.Tools;
 
-namespace RelayerSDK;
+namespace FhevmSDK;
 
 public abstract class Decrypt : DisposableOnce
 {

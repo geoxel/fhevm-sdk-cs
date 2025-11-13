@@ -1,4 +1,4 @@
-﻿namespace RelayerSDK;
+﻿namespace FhevmSDK;
 
 public sealed class Config
 {

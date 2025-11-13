@@ -1,4 +1,4 @@
-Building a .NET C# interop on the KMS library and doing some relayer-sdk things in C#.
+Building a .NET C# interop on the KMS library and doing some fhevm-sdk things in C#.
 
 ## Setup
 
@@ -22,8 +22,8 @@ $ cd ..
 ```
 Finally, retrieve this repo.
 ```bash
-$ git clone https://github.com/geoxel/relayer-sdk-cs.git
-$ cd relayer-sdk-cs
+$ git clone https://github.com/geoxel/fhevm-sdk-cs.git
+$ cd fhevm-sdk-cs
 ```
 ## Testing
 You should have followed the `https://docs.zama.org/protocol/solidity-guides/getting-started/setup` tutorial and deployed a simple `Counter.sol` contract on the Sepolia blockchain.

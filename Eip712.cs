@@ -1,8 +1,8 @@
 ﻿using Nethereum.ABI.EIP712;
 using Nethereum.Signer;
-using RelayerSDK.Tools;
+using FhevmSDK.Tools;
 
-namespace RelayerSDK;
+namespace FhevmSDK;
 
 public static class Eip712
 {

@@ -1,7 +1,7 @@
 ﻿using Fhe;
-using RelayerSDK.Kms;
-using RelayerSDK.Tools;
-using RelayerSDK.Tools.Json;
+using FhevmSDK.Kms;
+using FhevmSDK.Tools;
+using FhevmSDK.Tools.Json;
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Numerics;
@@ -10,7 +10,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace RelayerSDK;
+namespace FhevmSDK;
 
 public sealed class UserDecrypt : Decrypt
 {
