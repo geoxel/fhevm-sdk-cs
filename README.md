@@ -48,10 +48,10 @@ $ git clone https://github.com/geoxel/fhevm-sdk-cs.git
 $ cd fhevm-sdk-cs
 ```
 # Run
-The sample client hqas the following options:
+The sample client has the following options:
 ```
 Description:
-  Simple THECounter client app on Sepolia
+  Simple FHECounter client app on Sepolia
 
 Usage:
   FHECounterClient [command] [options]
