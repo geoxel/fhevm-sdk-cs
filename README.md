@@ -48,6 +48,25 @@ $ git clone https://github.com/geoxel/fhevm-sdk-cs.git
 $ cd fhevm-sdk-cs
 ```
 # Run
+The sample client hqas the following options:
+```
+Description:
+  Simple THECounter client app on Sepolia
+
+Usage:
+  FHECounterClient [command] [options]
+
+Options:
+  -?, -h, --help  Show help and usage information
+  --version       Show version information
+
+Commands:
+  print-counter-handle   Print the FHE counter handle.
+  decrypt-counter-value  Decrypt and print FHE counter value.
+  increment              Increment counter.
+  decrement              Decrement counter.
+```
+
 You should have followed the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deployed a simple `Counter.sol` contract on the Sepolia blockchain.
 The contract address has been set in `Config.json` as well as your user address. You can also set the ETH private key as well as the Infura API key in this file. (or not, in this case you have to enter them as shown below)
 
