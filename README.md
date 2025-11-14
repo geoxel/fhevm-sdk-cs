@@ -4,7 +4,7 @@
 
 # What is C# FHEVM SDK ?
 
-C# FHEVM SDK can encrypt and decrypt FHE handles values on the Sepolia blockchain.
+C# FHEVM SDK can interact with FHE contracts on the Ethereum blockchain.
 
 # Requirements
 
