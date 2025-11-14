@@ -9,7 +9,7 @@ C# FHEVM SDK can encrypt and decrypt FHE handles values on the Sepolia blockchai
 # Requirements
 
 > [!WARNING]
-> This client only runs on FHEVM v8 (TFHE-RS 1.3.x and KMS 0.11.x). It will be soon adpated to v9.
+> This client only runs on FHEVM v8 (TFHE-RS 1.3.x and KMS 0.11.x). It will be soon adapted to v9.
 
 - A Rust environment is required: go to https://rust-lang.org/tools/install/ and install the Rust toolchain.
 
