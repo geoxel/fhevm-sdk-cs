@@ -13,9 +13,9 @@ C# FHEVM SDK can encrypt and decrypt FHE handles values on the Sepolia blockchai
 
 - A Rust environment is required: go to https://rust-lang.org/tools/install/ and install the Rust toolchain.
 
-- .NET : go to https://dotnet.microsoft.com/en-us/download/dotnet/10.0 and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
+- .NET: go to https://dotnet.microsoft.com/en-us/download/dotnet/10.0 and install the **.NET SDK** (not the Runtime). The `dotnet` command must be in your `PATH`.
 
-- Infura Key : go to the MetaMask website.
+- Infura Key: go to the MetaMask website.
 
 - Follow the https://docs.zama.org/protocol/solidity-guides/getting-started/setup tutorial and deploy a `FHECounter.sol` contract.
 
@@ -75,28 +75,51 @@ Commands:
 ```
 The deployed `FHECounter.sol` contract is:
 ```solidity
-// SPDX-License-Identifier: BSD-3-Clause-Clear
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @title A simple counter contract
-contract Counter {
-  uint32 private _count;
+import {FHE, euint32, externalEuint32} from "@fhevm/solidity/lib/FHE.sol";
+import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
-  /// @notice Returns the current count
-  function getCount() external view returns (uint32) {
-    return _count;
-  }
+/// @title A simple FHE counter contract
+/// @author fhevm-hardhat-template
+/// @notice A very basic example contract showing how to work with encrypted data using FHEVM.
+contract FHECounter is SepoliaConfig {
+    euint32 private _count;
 
-  /// @notice Increments the counter by a specific value
-  function increment(uint32 value) external {
-    _count += value;
-  }
+    /// @notice Returns the current count
+    /// @return The current encrypted count
+    function getCount() external view returns (euint32) {
+        return _count;
+    }
 
-  /// @notice Decrements the counter by a specific value
-  function decrement(uint32 value) external {
-    require(_count >= value, "Counter: cannot decrement below zero");
-    _count -= value;
-  }
+    /// @notice Increments the counter by a specified encrypted value.
+    /// @param inputEuint32 the encrypted input value
+    /// @param inputProof the input proof
+    /// @dev This example omits overflow/underflow checks for simplicity and readability.
+    /// In a production contract, proper range checks should be implemented.
+    function increment(externalEuint32 inputEuint32, bytes calldata inputProof) external {
+        euint32 encryptedEuint32 = FHE.fromExternal(inputEuint32, inputProof);
+
+        _count = FHE.add(_count, encryptedEuint32);
+
+        FHE.allowThis(_count);
+        FHE.allow(_count, msg.sender);
+    }
+
+    /// @notice Decrements the counter by a specified encrypted value.
+    /// @param inputEuint32 the encrypted input value
+    /// @param inputProof the input proof
+    /// @dev This example omits overflow/underflow checks for simplicity and readability.
+    /// In a production contract, proper range checks should be implemented.
+    function decrement(externalEuint32 inputEuint32, bytes calldata inputProof) external {
+        euint32 encryptedEuint32 = FHE.fromExternal(inputEuint32, inputProof);
+
+        _count = FHE.sub(_count, encryptedEuint32);
+
+        FHE.allowThis(_count);
+        FHE.allow(_count, msg.sender);
+    }
 }
 ```
 
