@@ -32,7 +32,7 @@ public static class CounterClient
     private static string? _ethPrivateKey;
     private static string? _infuraApiKey;
 
-    public static Config ReadConfig()
+    private static Config ReadConfig()
     {
         string configFilename = "Config.json";
 
@@ -49,32 +49,48 @@ public static class CounterClient
         if (!AddressHelper.IsAddress(config.UserAddress ?? ""))
             throw new InvalidDataException($"Invalid user address: {config.UserAddress}");
 
-        _ethPrivateKey = config.EthPrivateKey;
-        if (string.IsNullOrWhiteSpace(_ethPrivateKey))
-        {
-            Console.Write("Enter the ETH private key: ");
-            _ethPrivateKey = ConsoleReadPassword.Read();
-        }
-        _ethPrivateKey = _ethPrivateKey.Trim();
-        if (_ethPrivateKey.Length != 64)
-            throw new InvalidDataException("Invalid ETH private key.");
-
-        _infuraApiKey = config.InfuraApiKey;
-        if (string.IsNullOrWhiteSpace(_infuraApiKey))
-        {
-            Console.Write("Enter the Infura API key: ");
-            _infuraApiKey = ConsoleReadPassword.Read();
-        }
-        _infuraApiKey = _infuraApiKey.Trim();
-
         return config;
     }
 
-    private static Web3 CreateWeb3(FhevmConfig fhevmConfig)
+    private static string GetEthPrivateKey(Config config)
     {
-        Account account = new(_ethPrivateKey!);
+        if (_ethPrivateKey == null)
+        {
+            _ethPrivateKey = config.EthPrivateKey;
+            if (string.IsNullOrWhiteSpace(_ethPrivateKey))
+            {
+                Console.Write("Enter the ETH private key: ");
+                _ethPrivateKey = ConsoleReadPassword.Read();
+            }
+            _ethPrivateKey = _ethPrivateKey.Trim();
+            if (_ethPrivateKey.Length != 64)
+                throw new InvalidDataException("Invalid ETH private key.");
+        }
 
-        string rpcUrl = $"{fhevmConfig.InfuraUrl}/{_infuraApiKey}";
+        return _ethPrivateKey;
+    }
+
+    private static string GetInfuraApiKey(Config config)
+    {
+        if (_infuraApiKey == null)
+        {
+            _infuraApiKey = config.InfuraApiKey;
+            if (string.IsNullOrWhiteSpace(_infuraApiKey))
+            {
+                Console.Write("Enter the Infura API key: ");
+                _infuraApiKey = ConsoleReadPassword.Read();
+            }
+            _infuraApiKey = _infuraApiKey.Trim();
+        }
+
+        return _infuraApiKey;
+    }
+
+    private static Web3 CreateWeb3(Config config, FhevmConfig fhevmConfig)
+    {
+        Account account = new(GetEthPrivateKey(config));
+
+        string rpcUrl = $"{fhevmConfig.InfuraUrl}/{GetInfuraApiKey(config)}";
 
         Web3 web3 = new(account, rpcUrl);
         web3.TransactionManager.DefaultGas = new BigInteger(500_000);
@@ -82,11 +98,11 @@ public static class CounterClient
         return web3;
     }
 
-    private static async Task<(IReadOnlyList<string> kmsSigners, int kmsSignersThreshold)> GetKMSSigners(FhevmConfig fhevmConfig)
+    private static async Task<(IReadOnlyList<string> kmsSigners, int kmsSignersThreshold)> GetKMSSigners(Config config, FhevmConfig fhevmConfig)
     {
         if (_kmsSigners == null)
         {
-            const string KmsVerifierAbi =
+            const string kmsVerifierAbi =
             @"[
                 {
                     'constant': true,
@@ -104,9 +120,9 @@ public static class CounterClient
                 }
             ]";
 
-            Web3 web3 = CreateWeb3(fhevmConfig);
+            Web3 web3 = CreateWeb3(config, fhevmConfig);
 
-            Contract contract = web3.Eth.GetContract(KmsVerifierAbi, fhevmConfig.KmsContractAddress);
+            Contract contract = web3.Eth.GetContract(kmsVerifierAbi, fhevmConfig.KmsContractAddress);
 
             Function getKmsSignersFunction = contract.GetFunction("getKmsSigners");
             Function getThresholdFunction = contract.GetFunction("getThreshold");
@@ -118,7 +134,7 @@ public static class CounterClient
         return (_kmsSigners, _kmsSignersThreshold);
     }
 
-    private static async Task<(IReadOnlyList<string> coprocessorSigners, int coprocessorSignersThreshold)> GetCoprocessorSigners(FhevmConfig fhevmConfig)
+    private static async Task<(IReadOnlyList<string> coprocessorSigners, int coprocessorSignersThreshold)> GetCoprocessorSigners(Config config, FhevmConfig fhevmConfig)
     {
         if (_coprocessorSigners == null)
         {
@@ -140,7 +156,7 @@ public static class CounterClient
                 }
             ]";
 
-            Web3 web3 = CreateWeb3(fhevmConfig);
+            Web3 web3 = CreateWeb3(config, fhevmConfig);
 
             Contract contract = web3.Eth.GetContract(InputVerifierAbi, fhevmConfig.InputVerifierContractAddress);
 
@@ -187,7 +203,7 @@ public static class CounterClient
             }
         ]";
 
-        Web3 web3 = CreateWeb3(fhevmConfig);
+        Web3 web3 = CreateWeb3(config, fhevmConfig);
 
         return web3.Eth.GetContract(FHECounterAbi, config.FHECounterContractAddress);
     }
@@ -251,7 +267,7 @@ public static class CounterClient
         Console.WriteLine("Signing EIP-712 typed data...");
 
         var signer = Eip712TypedDataSigner.Current;
-        var ethPrivateKey = new EthECKey(_ethPrivateKey!);
+        var ethPrivateKey = new EthECKey(GetEthPrivateKey(config));
 
         string eip712Signature = signer.SignTypedDataV4(typedData, ethPrivateKey);
 
@@ -259,7 +275,7 @@ public static class CounterClient
 
         Console.WriteLine("Retrieving KMS signers...");
 
-        (IReadOnlyList<string> kmsSigners, int kmsSignersThreshold) = await GetKMSSigners(fhevmConfig);
+        (IReadOnlyList<string> kmsSigners, int kmsSignersThreshold) = await GetKMSSigners(config, fhevmConfig);
 
         Console.WriteLine("Decrypting handle...");
 
@@ -304,7 +320,7 @@ public static class CounterClient
         string contractAddress = config.FHECounterContractAddress;
         string userAddress = config.UserAddress;
 
-        (IReadOnlyList<string> coprocessorSigners, int coprocessorSignersThreshold) = await GetCoprocessorSigners(fhevmConfig);
+        (IReadOnlyList<string> coprocessorSigners, int coprocessorSignersThreshold) = await GetCoprocessorSigners(config, fhevmConfig);
 
         using EncryptedValuesBuilder builder = new(keys.CompactPublicKeyInfo);
         builder.PushU32((uint)Math.Abs(value));
