@@ -23,8 +23,8 @@ public static class HandleHelper
         return true;
     }
 
-    private static readonly byte[] RAW_CT_HASH_DOMAIN_SEPARATOR = Encoding.UTF8.GetBytes(""); // "ZK-w_rct" ????? V8 / V9 ?
-    private static readonly byte[] HANDLE_HASH_DOMAIN_SEPARATOR = Encoding.UTF8.GetBytes(""); // "ZK-w_hdl" ?????
+    private static readonly byte[] RAW_CT_HASH_DOMAIN_SEPARATOR = Encoding.UTF8.GetBytes("ZK-w_rct");
+    private static readonly byte[] HANDLE_HASH_DOMAIN_SEPARATOR = Encoding.UTF8.GetBytes("ZK-w_hdl");
 
     // So bad, KeccakDigest is internal...
     // private static byte[] KeccakDigest256(params byte[] arrays)

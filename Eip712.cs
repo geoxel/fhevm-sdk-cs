@@ -45,7 +45,6 @@ public static class Eip712
         [
             new MemberDescription { Name = "publicKey", Type = "bytes" },
             new MemberDescription { Name = "contractAddresses", Type = "address[]" },
-            new MemberDescription { Name = "contractsChainId", Type = "uint256" },
             new MemberDescription { Name = "startTimestamp", Type = "uint256" },
             new MemberDescription { Name = "durationDays", Type = "uint256" },
             new MemberDescription { Name = "extraData", Type = "bytes" },
@@ -55,8 +54,7 @@ public static class Eip712
         [
             new MemberValue { TypeName = "bytes", Value = Helpers.Ensure0xPrefix(publicKey) }, // publicKey
             new MemberValue { TypeName = "address[]", Value = contractAddresses }, // contractAddresses
-            new MemberValue { TypeName = "uint256", Value = fhevmConfig.ChainId }, // contractsChainId
-            new MemberValue { TypeName = "uint256", Value = Helpers.DataTimeToTimestamp(startTime) },
+            new MemberValue { TypeName = "uint256", Value = Helpers.DataTimeToTimestamp(startTime) }, // startTimestamp
             new MemberValue { TypeName = "uint256", Value = durationDays }, // durationDays
             new MemberValue { TypeName = "bytes", Value = extraData }, // extraData 
         ];
