@@ -15,8 +15,8 @@ public static class Helpers
         value.ToUnixTimeSeconds();
 
     public static bool IsThresholdReached(
-        string[] recoveredAddresses,
-        string[] coprocessorSigners,
+        IReadOnlyList<string> recoveredAddresses,
+        IReadOnlyList<string> coprocessorSigners,
         int _thresholdSigners)
     {
         string? duplicatedAddress =
@@ -29,10 +29,14 @@ public static class Helpers
         if (duplicatedAddress != null)
             throw new InvalidDataException($"Duplicate KMS signer address found: {duplicatedAddress} appears multiple times in recovered addresses");
 
+
+Console.WriteLine("recoveredAddresses: "+string.Join(',', recoveredAddresses));
+Console.WriteLine("coprocessorSigners: "+string.Join(',', coprocessorSigners));
+
         string? unknownRecoveredAddress = recoveredAddresses.FirstOrDefault(ra => !coprocessorSigners.Contains(ra));
         if (unknownRecoveredAddress != null)
             throw new InvalidDataException($"Invalid address found: {unknownRecoveredAddress} is not in the list of KMS signers");
 
-        return recoveredAddresses.Length >= _thresholdSigners;
+        return recoveredAddresses.Count >= _thresholdSigners;
     }
 }

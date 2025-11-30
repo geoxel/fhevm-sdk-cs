@@ -1,4 +1,7 @@
 ﻿using Fhe;
+using Nethereum.ABI.EIP712;
+using Nethereum.Signer;
+using Nethereum.Signer.EIP712;
 using Nethereum.Util;
 using Nethermind.Int256; // https://github.com/NethermindEth/int256/tree/main
 using FhevmSDK.Tools;
@@ -104,53 +107,57 @@ public sealed class FhevmEncrypter
         {
             string h = o.First;
             string rh = o.Second;
-            // Note that the hex strings returned by the relayer do have have the 0x prefix
             if (h != rh)
                 throw new InvalidOperationException($"Incorrect handle: (expected: {h}) != (received: {rh})");
         });
 
-        /*
-        TODO
-
-        //const signatures: string[] = json.response.signatures;
-
-        // verify signatures for inputs:
-        const domain = {
-          name: 'InputVerification',
-          version: '1',
-          chainId: fhevmConfig.GatewayChainId,
-          verifyingContract: fhevmConfig.VerifyingContractAddressInputVerification,
-        };
-        const types = {
-          CiphertextVerification: [
-            { name: 'ctHandles', type: 'bytes32[]' },
-            { name: 'userAddress', type: 'address' },
-            { name: 'contractAddress', type: 'address' },
-            { name: 'contractChainId', type: 'uint256' },
-            { name: 'extraData', type: 'bytes' },
-          ],
-        };
-
-        const recoveredAddresses = signatures.map((signature: string) => {
-          const sig = Helpers.Ensure0xPrefix(signature);
-          const recoveredAddress = ethers.verifyTypedData(
-            domain,
-            types,
+        var typedData = new TypedData<Domain>
+        {
+            Domain = new Domain
             {
-              ctHandles: handles,
-              userAddress,
-              contractAddress,
-              contractChainId: fhevmConfig.ChainId,
-              defaultExtraData,
+                Name = "InputVerification",
+                Version = "1",
+                ChainId = fhevmConfig.GatewayChainId,
+                VerifyingContract = fhevmConfig.VerifyingContractAddressInputVerification,
             },
-            sig,
-          );
-          return recoveredAddress;
-        });
+            Types = new Dictionary<string, MemberDescription[]>
+            {
+                ["EIP712Domain"] =
+                [
+                    new MemberDescription { Name = "name", Type = "string" },
+                    new MemberDescription { Name = "version", Type = "string" },
+                    new MemberDescription { Name = "chainId", Type = "uint256" },
+                    new MemberDescription { Name = "verifyingContract", Type = "address" },
+                ],
+                ["CiphertextVerification"] =
+                [
+                    new MemberDescription { Name = "ctHandles", Type = "bytes32[]" },
+                    new MemberDescription { Name = "userAddress", Type = "address" },
+                    new MemberDescription { Name = "contractAddress", Type = "address" },
+                    new MemberDescription { Name = "contractChainId", Type = "uint256" },
+                    new MemberDescription { Name = "extraData", Type = "bytes" },
+                ],
+            },
+            PrimaryType = "CiphertextVerification",
+            Message =
+            [
+                new MemberValue { TypeName = "bytes32[]", Value = handles.Select(h => Convert.FromHexString(h[2..])).ToArray() }, // ctHandles
+                new MemberValue { TypeName = "address", Value = userAddress }, // userAddress
+                new MemberValue { TypeName = "address", Value = contractAddress }, // contractAddress
+                new MemberValue { TypeName = "uint256", Value = fhevmConfig.ChainId }, // contractChainId
+                new MemberValue { TypeName = "bytes", Value = defaultExtraData }, // extraData
+            ],
+        };
 
-        if (!Helpers.IsThresholdReached(recoveredAddresses, _kmsSigcoprocessorSigners, _coprocessorSignersThreshold))
+        var typedDataSigner = new Eip712TypedDataSigner();
+
+        string[] recoveredAddresses =
+            resp.Signatures
+            .Select(signature => typedDataSigner.RecoverFromSignatureV4(typedData, signature))
+            .ToArray();
+
+        if (!Helpers.IsThresholdReached(recoveredAddresses, coprocessorSigners, coprocessorSignersThreshold))
             throw new InvalidOperationException("Coprocessor signers threshold is not reached");
-        */
 
         // inputProof is len(list_handles) + numCoprocessorSigners + list_handles + signatureCoprocessorSigners (1+1+NUM_HANDLES*32+65*numSigners)
         var inputProof = string.Concat(
