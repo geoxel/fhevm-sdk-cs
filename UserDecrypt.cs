@@ -1,4 +1,5 @@
 ﻿using Fhe;
+using Nethereum.Contracts;
 using FhevmSDK.Kms;
 using FhevmSDK.Tools;
 using FhevmSDK.Tools.Json;
@@ -14,9 +15,24 @@ namespace FhevmSDK;
 
 public sealed class UserDecrypt : Decrypt
 {
+    private readonly Config _config;
     private readonly FhevmConfig _fhevmConfig;
     private readonly ServerIdAddr[] _indexedKmsSigners;
     private readonly string _eip712Domain_json;
+
+    private const string _aclAbi =
+    @"[
+        {
+            'constant': true,
+            'inputs': [
+                { 'name': 'handle',  'type': 'bytes32' },
+                { 'name': 'account', 'type': 'address' }
+            ],
+            'name': 'persistAllowed',
+            'outputs': [ { 'name': '', 'type': 'bool' } ],
+            'type': 'function'
+        }
+    ]";
 
     private readonly static JsonSerializerOptions _json_serialization_options = new()
     {
@@ -24,9 +40,11 @@ public sealed class UserDecrypt : Decrypt
     };
 
     public UserDecrypt(
+        Config config,
         FhevmConfig fhevmConfig,
         IReadOnlyList<string> kmsSigners)
     {
+        _config = config;
         _fhevmConfig = fhevmConfig;
 
         // assume the KMS Signers have the correct order
@@ -191,25 +209,27 @@ public sealed class UserDecrypt : Decrypt
         if (contractAddresses.Length > MAX_USER_DECRYPT_CONTRACT_ADDRESSES)
             throw new InvalidOperationException($"contractAddresses length exceeds {MAX_USER_DECRYPT_CONTRACT_ADDRESSES}");
 
-        /* TODO
+        Contract contract = CounterClient.GetContract(_fhevmConfig.AclContractAddress, _aclAbi, _config, _fhevmConfig);
+        Function persistAllowed_Function = contract.GetFunction("persistAllowed");
 
-        const acl = new ethers.Contract(_fhevmConfig.AclContractAddress, aclABI, provider);
-        const verifications = handles.map(async({ handle, contractAddress }) => {
-            const userAllowed = await acl.persistAllowed(handle, userAddress);
-            const contractAllowed = await acl.persistAllowed(handle, contractAddress);
-            if (!userAllowed)
-                throw new Error(`User ${ userAddress } is not authorized to user decrypt handle ${handle}!`);
-            if (!contractAllowed)
-                throw new Error(`dapp contract ${ contractAddress } is not authorized to user decrypt handle ${handle}!`);
-            if (userAddress === contractAddress)
-                throw new Error(`userAddress ${ userAddress } should not be equal to contractAddress when requesting user decryption!`);
-        });
-
-        await Promise.all(verifications).catch((e) =>
+        foreach (HandleContractPair hcp in handles)
         {
-            throw e;
-        });
-        */
+            if (userAddress == hcp.ContractAddress)
+                throw new InvalidOperationException($"UserAddress {userAddress} should not be equal to contractAddress when requesting user decryption");
+
+            bool userAllowed = await persistAllowed_Function.CallAsync<bool>(
+                Convert.FromHexString(Helpers.Remove0xIfAny(hcp.Handle)),
+                hcp.ContractAddress);
+
+            if (!userAllowed)
+                throw new InvalidOperationException($"User {userAddress} is not authorized to user decrypt handle {hcp.Handle}");
+
+            bool contractAllowed = await persistAllowed_Function.CallAsync<bool>(
+                Convert.FromHexString(Helpers.Remove0xIfAny(hcp.Handle)),
+                hcp.ContractAddress);
+            if (!contractAllowed)
+                throw new InvalidOperationException($"dapp contract {hcp.ContractAddress} is not authorized to user decrypt handle {hcp.Handle}");
+        }
 
         const string DefaultExtraData = "0x00";
 
@@ -231,9 +251,8 @@ public sealed class UserDecrypt : Decrypt
 
         using HttpClient httpClient = new();
 
-        string pubKeyUrl =  $"{_fhevmConfig.RelayerUrl}/v1/user-decrypt";
+        string pubKeyUrl = $"{_fhevmConfig.RelayerUrl}/v1/user-decrypt";
         string payload_json = JsonSerializer.Serialize(payload);
-
         using StringContent content = new(payload_json, Encoding.UTF8, "application/json");
         using HttpResponseMessage response = await httpClient.PostAsync(pubKeyUrl, content);
         response.EnsureSuccessStatusCode(); // throw if not 2xx

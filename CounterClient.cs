@@ -134,11 +134,18 @@ public static class CounterClient
         return (_kmsSigners, _kmsSignersThreshold);
     }
 
+    public static Contract GetContract(string contractAddress, string abi, Config config, FhevmConfig fhevmConfig)
+    {
+        Web3 web3 = CreateWeb3(config, fhevmConfig);
+
+        return web3.Eth.GetContract(abi, contractAddress);
+    }
+
     private static async Task<(IReadOnlyList<string> coprocessorSigners, int coprocessorSignersThreshold)> GetCoprocessorSigners(Config config, FhevmConfig fhevmConfig)
     {
         if (_coprocessorSigners == null)
         {
-            const string InputVerifierAbi =
+            const string inputVerifierAbi =
             @"[
                 {
                     'constant': true,
@@ -156,9 +163,7 @@ public static class CounterClient
                 }
             ]";
 
-            Web3 web3 = CreateWeb3(config, fhevmConfig);
-
-            Contract contract = web3.Eth.GetContract(InputVerifierAbi, fhevmConfig.InputVerifierContractAddress);
+            Contract contract = GetContract(fhevmConfig.InputVerifierContractAddress, inputVerifierAbi, config, fhevmConfig);
 
             Function getCoprocessorSignersFunction = contract.GetFunction("getCoprocessorSigners");
             Function getThresholdFunction = contract.GetFunction("getThreshold");
@@ -172,7 +177,7 @@ public static class CounterClient
 
     private static Contract GetFHECounterContract(Config config, FhevmConfig fhevmConfig)
     {
-        const string FHECounterAbi =
+        const string fheCounterAbi =
         @"[
             {
                 'constant': false,
@@ -203,9 +208,7 @@ public static class CounterClient
             }
         ]";
 
-        Web3 web3 = CreateWeb3(config, fhevmConfig);
-
-        return web3.Eth.GetContract(FHECounterAbi, config.FHECounterContractAddress);
+        return GetContract(config.FHECounterContractAddress, fheCounterAbi, config, fhevmConfig);
     }
 
     public static async Task<byte[]> RetrieveCurrentFHECounterHandle(Contract contract)
@@ -279,7 +282,7 @@ public static class CounterClient
 
         Console.WriteLine("Decrypting handle...");
 
-        using UserDecrypt decrypt = new(fhevmConfig, kmsSigners);
+        using UserDecrypt decrypt = new(config, fhevmConfig, kmsSigners);
 
         HandleContractPair[] handleContractPairs =
         [
