@@ -1,7 +1,12 @@
-﻿using Nethereum.Util;
+﻿using Fhe;
+using Nethereum.Util;
 using Nethereum.ABI;
+using Nethereum.ABI.EIP712;
 using Nethereum.ABI.FunctionEncoding;
 using Nethereum.ABI.Model;
+using Nethereum.Contracts;
+using Nethereum.Signer.EIP712;
+using FhevmSDK.Kms;
 using FhevmSDK.Tools;
 using FhevmSDK.Tools.Json;
 using System.Buffers.Binary;
@@ -11,60 +16,58 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Runtime.CompilerServices;
 
 namespace FhevmSDK;
 
-#if ___NOT_FINISHED___
-
 public sealed class PublicDecrypt : Decrypt
 {
-    private readonly ServerIdAddr[] _indexedKmsSigners;
-    private readonly HashSet<string> _kmsSigners;
-    private readonly int _thresholdSignerCount;
-    private readonly string _eip712Domain_json;
-    private readonly string _verifyingContractAddress;
-    private readonly string _aclContractAddress;
-    private readonly string _relayerUrl;
+    private readonly Config _config;
+    private readonly FhevmConfig _fhevmConfig;
 
-    private readonly static JsonSerializerOptions json_serialization_options = new()
+    private readonly ServerIdAddr[] _indexedKmsSigners;
+    private readonly string _eip712Domain_json;
+    private readonly IReadOnlyList<string> _kmsSigners;
+    private readonly int _kmsSignersThreshold;
+
+    private readonly static JsonSerializerOptions _json_serialization_options = new()
     {
         Converters = { new ByteArrayAsNumbersJsonConverter() }
     };
 
     public PublicDecrypt(
-        string[] kmsSigners,
-        int gatewayChainId,
-        string verifyingContractAddress,
-        string aclContractAddress,
-        string relayerUrl)
+        Config config,
+        FhevmConfig fhevmConfig,
+        IReadOnlyList<string> kmsSigners,
+        int kmsSignersThreshold)
     {
-        _kmsSigners = kmsSigners.ToHashSet();
+        _config = config;
+        _fhevmConfig = fhevmConfig;
+
+        _kmsSigners = kmsSigners;
+        _kmsSignersThreshold = kmsSignersThreshold;
 
         // assume the KMS Signers have the correct order
         _indexedKmsSigners =
-            Enumerable.Range(1, kmsSigners.Length)
+            Enumerable.Range(1, kmsSigners.Count)
             .Zip(kmsSigners, (index, signer) => ServerIdAddr.Create(index, signer))
             .ToArray();
 
-        // TODO: not sure - BE or LE ?
+        // TODO: not sure, why not writing a BE uint64 at offset 24 ?
         byte[] chainIdArrayBE = new byte[32];
-        BinaryPrimitives.WriteInt32BigEndian(chainIdArrayBE.AsSpan(start: 28), gatewayChainId);
+        BinaryPrimitives.WriteUInt32BigEndian(chainIdArrayBE.AsSpan(start: 28), (uint)_fhevmConfig.GatewayChainId);
 
         Eip712DomainMsg eip712Domain = new()
         {
             name = "Decryption",
             version = "1",
             chain_id = chainIdArrayBE,
-            verifying_contract = verifyingContractAddress,
+            verifying_contract = fhevmConfig.VerifyingContractAddress,
             salt = null,
         };
 
-        _eip712Domain_json = JsonSerializer.Serialize(eip712Domain, json_serialization_options);
-
-        _verifyingContractAddress = verifyingContractAddress;
-        _aclContractAddress = aclContractAddress;
-        _relayerUrl = relayerUrl;
+        _eip712Domain_json = JsonSerializer.Serialize(eip712Domain, _json_serialization_options);
     }
 
     protected override void DisposeManagedResources()
@@ -73,26 +76,7 @@ public sealed class PublicDecrypt : Decrypt
     }
 
     private bool IsThresholdReached(string[] recoveredAddresses) =>
-        Helpers.IsThresholdReached(recoveredAddresses, _kmsSigners, _thresholdSignerCount);
-
-    private bool IsThresholdReached(string[] recoveredAddresses)
-    {
-        string duplicatedAddress =
-            recoveredAddresses
-            .GroupBy(a => a)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .FirstOrDefault();
-
-        if (duplicatedAddress != null)
-            throw new InvalidDataException($"Duplicate KMS signer address found: {duplicatedAddress} appears multiple times in recovered addresses");
-
-        string unknownRecoveredAddress = recoveredAddresses.FirstOrDefault(ra => !_kmsSigners.Contains(ra));
-        if (unknownRecoveredAddress != null)
-            throw new InvalidDataException($"Invalid address found: {unknownRecoveredAddress} is not in the list of KMS signers");
-
-        return recoveredAddresses.Length >= _thresholdSignerCount;
-    }
+        Helpers.IsThresholdReached(recoveredAddresses, _kmsSigners, _kmsSignersThreshold);
 
     private static readonly Dictionary<FheValueType, string> CiphertextType = new()
     {
@@ -106,119 +90,239 @@ public sealed class PublicDecrypt : Decrypt
         { FheValueType.UInt256, "uint256" },
     };
 
-    private static Dictionary<string, object> DeserializeDecryptedResult(string[] handles, string decryptedResult)
+    private static Dictionary<string, object> DeserializeClearValues(IReadOnlyList<string> handles, string decryptedResult)
     {
-        List<FheValueType> typesList = handles.Select(h => GetValueTypeFromHandle(h)).ToList();
-
         string restoredEncoded =
             "0x"
             + new string('0', 2 * 32) // dummy requestID (ignored)
-            + decryptedResult.Substring(2)
+            + decryptedResult
             + new string('0', 2 * 32); // dummy empty bytes[] length (ignored)
 
         // all types are valid because this was supposedly checked already inside the `checkEncryptedBits` function
-        List<string> abiTypes = typesList.Select(t => CiphertextType[t]).ToList();
+        List<FheValueType> types =
+            handles
+            .Select(h => HandleHelper.GetValueType(h))
+            .ToList();
 
         var decoder = new ParameterDecoder();
         List<ParameterOutput> outputs =
             decoder.DecodeDefaultData(
                 restoredEncoded,
-                new[] { new Parameter("uint256", "a0") }
-                    .Concat(abiTypes.Select(t => new Parameter(t, "n")))
-                    .Concat([new Parameter("bytes[]", "an")])
-                    .ToArray()
-                );
+                [
+                    new Parameter("uint256", "a0"),
+                    ..types.Select(t => new Parameter(CiphertextType[t], "n")),
+                    new Parameter("bytes[]", "an")
+                ]);
 
         return
-            Enumerable.Range(0, handles.Length)
-            .Zip(handles, (i, h) => new { i = i, h = h })
-            .ToDictionary(o => o.h, o => outputs[1 + o.i].Result);
+            BuildDecryptedResults(
+                handles,
+                handles.Select(h => HandleHelper.GetValueType(h)).ToList(),
+                outputs.Skip(1).Take(outputs.Count - 2).Select(o => (BigInteger)o.Result).ToList());
     }
 
-    // https://github.com/zama-ai/fhevm-relayer/blob/96151ef300f787658c5fbaf1b4471263160032d5/src/http/public_decrypt_http_listener.rs#L19
-    private class RelayerPublicDecryptPayload
+    private static byte[] AbiEncodeClearValues(Dictionary<string, object> clearValues)
     {
-        public required string[] ciphertextHandles { get; set; }
-        public required string extraData { get; set; }
+        ABIValue[] abiValues =
+            clearValues
+            .Select(kv =>
+            {
+                string handle = kv.Key;
+                FheValueType handleType = HandleHelper.GetValueType(handle);
+                object clearTextValue = kv.Value;
+
+                if (clearTextValue is bool clearBool)
+                    clearTextValue = clearBool;
+
+                string abiType = "uint256";
+                object abiValue = handleType switch
+                {
+                    FheValueType.Address => $"0x{BigInteger.Parse((string)clearTextValue):X40}",
+                    FheValueType.Bool => Convert.ToBoolean(clearTextValue),
+                    FheValueType.UInt8 or
+                    FheValueType.UInt16 or
+                    FheValueType.UInt32 or
+                    FheValueType.UInt64 or
+                    FheValueType.UInt128 or
+                    FheValueType.UInt256 => clearTextValue,
+                    _ => throw new InvalidOperationException($"Unsupported Fhevm primitive type id: {handleType}")
+                };
+
+                return new ABIValue(abiType, abiValue);
+            })
+            .ToArray();
+
+        ABIEncode abiEncode = new();
+        return abiEncode.GetABIEncoded(abiValues);
     }
 
-    public async Task<Dictionary<string, object>> Decrypt(string[] _handles)
+    private static string BuildDecryptionProof(IReadOnlyList<string> kmsSignatures, string extraData)
     {
-        string[] handles = _handles.Select(h => Helpers.Ensure0xPrefix(h)).ToArray();
+        // Build the decryptionProof as numSigners + KMS signatures + extraData
 
-        // const acl = new ethers.Contract(aclContractAddress, aclABI, provider);
-        //   _handles = await Promise.all(
-        //     _handles.map(async (_handle) => {
-        //       const isAllowedForDecryption = await acl.isAllowedForDecryption(handle);
-        //       if (!isAllowedForDecryption) 
-        //         throw new Error($"Handle {handle} is not allowed for public decryption!");
+        ABIEncodePacked encodePacked = new();
 
-        //       return handle;
-        //     }),
-        //   );
+        byte[] packedNumSigners = encodePacked.GetABIEncodedPacked(
+            new ABIValue("uint256", kmsSignatures.length)
+        );
+
+        byte[] packedSignatures = encodePacked.GetABIEncodedPacked(
+            Enumerable.Range(0, kmsSignatures.Count).Select(_ => "bytes").ToArray(),
+            kmsSignatures
+        );
+
+        return Helpers.To0xHexString(packedNumSigners.Concat(packedSignatures));
+    }
+
+    private static class Json
+    {
+        // https://github.com/zama-ai/fhevm-relayer/blob/96151ef300f787658c5fbaf1b4471263160032d5/src/http/public_decrypt_http_listener.rs#L19
+        public class RelayerPublicDecryptPayload
+        {
+            public required string[] ciphertextHandles { get; set; }
+            public required string extraData { get; set; }
+        }
+
+        public class PublicDecryptionResponse
+        {
+            [JsonPropertyName("decrypted_value")]
+            public required string DecryptedValue { get; set; }
+
+            [JsonPropertyName("signatures")]
+            public required string[] Signatures { get; set; }
+        }
+
+        public class Container
+        {
+            [JsonPropertyName("response")]
+            public required PublicDecryptionResponse[] Response { get; set; }
+        }
+    }
+
+    private const string _aclAbi =
+    @"[
+        {
+            'constant': true,
+            'inputs': [ { 'name': 'handle',  'type': 'bytes32' } ],
+            'name': 'isAllowedForDecryption',
+            'outputs': [ { 'name': '', 'type': 'bool' } ],
+            'type': 'function'
+        }
+    ]";
+
+    public async Task<Dictionary<string, object>> Decrypt(IReadOnlyList<string> _handles)
+    {
+        string[] handles = _handles.Select(Helpers.Ensure0xPrefix).ToArray();
+
+        Contract contract = CounterClient.GetContract(_fhevmConfig.AclContractAddress, _aclAbi, _config, _fhevmConfig);
+        Function isAllowedForDecryption_Function = contract.GetFunction("isAllowedForDecryption");
+
+        foreach (string handle in handles)
+        {
+            bool isAllowedForDecryption = await isAllowedForDecryption_Function.CallAsync<bool>(Convert.FromHexString(handle[2..]));
+
+            if (!isAllowedForDecryption)
+                throw new InvalidOperationException($"Handle {handle} is not allowed for public decryption");
+        }
 
         // check 2048 bits limit
         CheckEncryptedBits(handles);
 
-        const string DefaultExtraData = "0x00";
-
-        RelayerPublicDecryptPayload payload = new()
+        Json.RelayerPublicDecryptPayload payload = new()
         {
             ciphertextHandles = handles,
-            extraData = DefaultExtraData,
+            extraData = "0x00",
         };
 
         using HttpClient httpClient = new();
-        string pubKeyUrl = $"{_relayerUrl}/v1/public-decrypt";
+        string pubKeyUrl = $"{_fhevmConfig.RelayerUrl}/v1/public-decrypt";
         string payload_json = JsonSerializer.Serialize(payload);
         var content = new StringContent(payload_json, Encoding.UTF8, "application/json");
         using HttpResponseMessage response = await httpClient.PostAsync(pubKeyUrl, content);
+        Console.WriteLine("RESP : " + await response.Content.ReadAsStringAsync()); // TODO-SRE
         response.EnsureSuccessStatusCode(); // throw if not 2xx
 
-        /*
-            // verify signatures on decryption:
-            const domain = {
-              name: 'Decryption',
-              version: '1',
-              chainId: gatewayChainId,
-              verifyingContract: verifyingContractAddress,
-            };
-            const types = {
-              PublicDecryptVerification: [
-                { name: 'ctHandles', type: 'bytes32[]' },
-                { name: 'decryptedResult', type: 'bytes' },
-                { name: 'extraData', type: 'bytes' },
-              ],
-            };
+        string resp_json = await response.Content.ReadAsStringAsync();
+        Json.Container resp = JsonSerializer.Deserialize<Json.Container>(resp_json) ?? throw new InvalidDataException("Invalid response");
 
-            const result = json.response[0];
-            string decryptedResult = Helpers.Ensure0xPrefix() result.decrypted_value);
+        Json.PublicDecryptionResponse result = resp.Response[0];
 
-            const signatures = result.signatures;
-            const signedExtraData = '0x';
+        var typedData = new TypedData<Domain>
+        {
+            Domain = new Domain
+            {
+                Name = "Decryption",
+                Version = "1",
+                ChainId = _fhevmConfig.GatewayChainId,
+                VerifyingContract = _fhevmConfig.VerifyingContractAddress,
+            },
+            Types = new Dictionary<string, MemberDescription[]>
+            {
+                ["EIP712Domain"] =
+                [
+                    new MemberDescription { Name = "name", Type = "string" },
+                    new MemberDescription { Name = "version", Type = "string" },
+                    new MemberDescription { Name = "chainId", Type = "uint256" },
+                    new MemberDescription { Name = "verifyingContract", Type = "address" },
+                ],
+                ["PublicDecryptVerification"] =
+                [
+                    new MemberDescription { Name = "ctHandles", Type = "bytes32[]" },
+                    new MemberDescription { Name = "decryptedResult", Type = "bytes" },
+                    new MemberDescription { Name = "extraData", Type = "bytes" },
+                ],
+            },
+            PrimaryType = "PublicDecryptVerification",
+            Message =
+            [
+                new MemberValue { TypeName = "bytes32[]", Value = handles.Select(h => Convert.FromHexString(h[2..])).ToArray() }, // ctHandles
+                new MemberValue { TypeName = "bytes", Value = Convert.FromHexString(result.DecryptedValue) }, // decryptedResult
+                new MemberValue { TypeName = "bytes", Value = "0x" }, // extraData
+            ],
+        };
 
-            const recoveredAddresses = signatures.map((signature: string) => {
-              const sig = signature.startsWith('0x') ? signature : `0x${signature}`;
-              const recoveredAddress = ethers.verifyTypedData(
-                domain,
-                types,
-                { ctHandles: handles, decryptedResult, extraData: signedExtraData },
-                sig,
-              );
-              return recoveredAddress;
-            });
+        var typedDataSigner = new Eip712TypedDataSigner();
 
+        List<string> recoveredAddresses =
+            result.Signatures
+            .Select(signature => typedDataSigner.RecoverFromSignatureV4(typedData, signature))
+            .ToList();
 
-        bool thresholdReached = IsThresholdReached(recoveredAddresses);
-        if (!thresholdReached)
+        if (!Helpers.IsThresholdReached(recoveredAddresses, _kmsSigners, _kmsSignersThreshold))
             throw new InvalidOperationException("KMS signers threshold is not reached");
 
-        return DeserializeDecryptedResult(handles, decryptedResult);
+        Dictionary<string, object> clearValues = DeserializeClearValues(handles, result.DecryptedValue);
 
+        byte[] abiEncodedClearValues = AbiEncodeClearValues(clearValues);
+
+        Console.WriteLine(BuildDecryptionProof(result.DecryptedValue.Select(Helper.Ensure0xPrefix).ToArray()));
+
+
+        return clearValues;
+
+        /*
+            const abiEnc = AbiEncodeClearValues(clearValues);
+            const decryptionProof = buildDecryptionProof(
+                kmsSignatures,
+                signedExtraData,
+
+            );
+
+            return {
+                clearValues,
+            abiEncodedClearValues: abiEnc.abiEncodedClearValues,
+            decryptionProof,
+        };
         */
+    }
 
-        return null;
+    public static void Test(Config config, FhevmConfig fhevmConfig, IReadOnlyList<string> kmsSigners, int kmsSignersThreshold) // TODO-SRE
+    {
+        using PublicDecrypt pd = new(config, fhevmConfig, kmsSigners, kmsSignersThreshold);
+
+        var eee = pd.Decrypt(["0x56bb5cfc208cb0388f7c44466c7f03e0cd0b5e1bdfff0000000000aa36a70400"]);
+        Console.WriteLine(JsonSerializer.Serialize(eee));
+
+        if (Environment.TickCount != 0) Environment.Exit(3);
     }
 }
-
-#endif // ___NOT_FINISHED___
