@@ -17,6 +17,7 @@ public sealed class UserDecrypt : Decrypt
 {
     private readonly Config _config;
     private readonly FhevmConfig _fhevmConfig;
+
     private readonly ServerIdAddr[] _indexedKmsSigners;
     private readonly string _eip712Domain_json;
 
@@ -74,32 +75,11 @@ public sealed class UserDecrypt : Decrypt
         _indexedKmsSigners.ForEach(s => s.Dispose());
     }
 
-    private static object FormatAccordingToType(BigInteger value, FheValueType type) =>
-        type switch
-        {
-            FheValueType.Bool => value == BigInteger.One,
-            FheValueType.Address => AddressHelper.GetChecksumAddress($"0x{value:X40}"),
-            FheValueType.Bytes64 => $"0x{value:X128}",
-            FheValueType.Bytes128 => $"0x{value:X256}",
-            FheValueType.Bytes256 => $"0x{value:X512}",
-            FheValueType.UInt8 => (byte)value,
-            FheValueType.UInt16 => (ushort)value,
-            FheValueType.UInt32 => (uint)value,
-            FheValueType.UInt64 => (ulong)value,
-            FheValueType.UInt128 => (UInt128)value,
-            FheValueType.UInt256 => value,
-            _ => value
-        };
-
-    private static Dictionary<string, object> BuildUserDecryptedResults(List<string> handles, List<BigInteger> listBigIntDecryptions) =>
-        handles
-        .Zip(listBigIntDecryptions, (h, d) => new { h, d = d })
-        .ToDictionary(o => o.h, o => FormatAccordingToType(o.d, HandleHelper.GetValueType(o.h)));
-
-    private static Dictionary<string, object> BuildUserDecryptedResults2(List<string> handles, TypedPlaintext[] result) =>
-        handles
-        .Zip(result, (h, r) => new { h, r = r })
-        .ToDictionary(o => o.h, o => FormatAccordingToType(new BigInteger(o.r.Bytes), (FheValueType)o.r.FheType), StringComparer.OrdinalIgnoreCase);
+    private static Dictionary<string, object> BuildUserDecryptedResults(List<string> handles, TypedPlaintext[] result) =>
+        BuildDecryptedResults(
+            handles,
+            result.Select(r => (FheValueType)r.FheType).ToList(),
+            result.Select(r => new BigInteger(r.Bytes)).ToList());
 
     // https://github.com/zama-ai/fhevm-relayer/blob/96151ef300f787658c5fbaf1b4471263160032d5/src/http/userdecrypt_http_listener.rs#L20
     private class RelayerUserDecryptPayload
@@ -305,10 +285,7 @@ public sealed class UserDecrypt : Decrypt
             JsonSerializer.Deserialize<TypedPlaintext[]>(resultJson, _json_serialization_options)
             ?? throw new InvalidDataException("Invalid json response from KMS");
 
-        //List<BigInteger> listBigIntDecryptions = result.Select(tp => new BigInteger(tp.Bytes)).ToList();
-        //return BuildUserDecryptedResults(handles.Select(h => h.Handle).ToList(), listBigIntDecryptions);
-
         // Prefer building result based on the fhe_type returned by the server.
-        return BuildUserDecryptedResults2(handles.Select(h => h.Handle).ToList(), result);
+        return BuildUserDecryptedResults(handles.Select(h => h.Handle).ToList(), result);
     }
 }
