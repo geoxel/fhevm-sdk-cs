@@ -1,6 +1,7 @@
 ﻿using Fhe;
 using FhevmSDK.Kms;
 using FhevmSDK.Tools;
+using System.Numerics;
 
 namespace FhevmSDK;
 

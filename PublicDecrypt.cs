@@ -155,25 +155,25 @@ public sealed class PublicDecrypt : Decrypt
         ABIEncode abiEncode = new();
         return abiEncode.GetABIEncoded(abiValues);
     }
+    /*
+        private static string BuildDecryptionProof(IReadOnlyList<string> kmsSignatures, string extraData)
+        {
+            // Build the decryptionProof as numSigners + KMS signatures + extraData
 
-    private static string BuildDecryptionProof(IReadOnlyList<string> kmsSignatures, string extraData)
-    {
-        // Build the decryptionProof as numSigners + KMS signatures + extraData
+            ABIEncodePacked encodePacked = new();
 
-        ABIEncodePacked encodePacked = new();
+            byte[] packedNumSigners = encodePacked.GetABIEncodedPacked(
+                new ABIValue("uint256", kmsSignatures.length)
+            );
 
-        byte[] packedNumSigners = encodePacked.GetABIEncodedPacked(
-            new ABIValue("uint256", kmsSignatures.length)
-        );
+            byte[] packedSignatures = encodePacked.GetABIEncodedPacked(
+                Enumerable.Range(0, kmsSignatures.Count).Select(_ => "bytes").ToArray(),
+                kmsSignatures
+            );
 
-        byte[] packedSignatures = encodePacked.GetABIEncodedPacked(
-            Enumerable.Range(0, kmsSignatures.Count).Select(_ => "bytes").ToArray(),
-            kmsSignatures
-        );
-
-        return Helpers.To0xHexString(packedNumSigners.Concat(packedSignatures));
-    }
-
+            return Helpers.To0xHexString(packedNumSigners.Concat(packedSignatures));
+        }
+    */
     private static class Json
     {
         // https://github.com/zama-ai/fhevm-relayer/blob/96151ef300f787658c5fbaf1b4471263160032d5/src/http/public_decrypt_http_listener.rs#L19
@@ -239,7 +239,9 @@ public sealed class PublicDecrypt : Decrypt
         string payload_json = JsonSerializer.Serialize(payload);
         var content = new StringContent(payload_json, Encoding.UTF8, "application/json");
         using HttpResponseMessage response = await httpClient.PostAsync(pubKeyUrl, content);
-        Console.WriteLine("RESP : " + await response.Content.ReadAsStringAsync()); // TODO-SRE
+
+        //Console.WriteLine("RESP : " + await response.Content.ReadAsStringAsync());
+
         response.EnsureSuccessStatusCode(); // throw if not 2xx
 
         string resp_json = await response.Content.ReadAsStringAsync();
@@ -293,10 +295,8 @@ public sealed class PublicDecrypt : Decrypt
 
         Dictionary<string, object> clearValues = DeserializeClearValues(handles, result.DecryptedValue);
 
-        byte[] abiEncodedClearValues = AbiEncodeClearValues(clearValues);
-
-        Console.WriteLine(BuildDecryptionProof(result.DecryptedValue.Select(Helper.Ensure0xPrefix).ToArray()));
-
+        //byte[] abiEncodedClearValues = AbiEncodeClearValues(clearValues);
+        //Console.WriteLine(BuildDecryptionProof(result.DecryptedValue.Select(Helper.Ensure0xPrefix).ToArray()));
 
         return clearValues;
 
@@ -314,15 +314,5 @@ public sealed class PublicDecrypt : Decrypt
             decryptionProof,
         };
         */
-    }
-
-    public static void Test(Config config, FhevmConfig fhevmConfig, IReadOnlyList<string> kmsSigners, int kmsSignersThreshold) // TODO-SRE
-    {
-        using PublicDecrypt pd = new(config, fhevmConfig, kmsSigners, kmsSignersThreshold);
-
-        var eee = pd.Decrypt(["0x56bb5cfc208cb0388f7c44466c7f03e0cd0b5e1bdfff0000000000aa36a70400"]);
-        Console.WriteLine(JsonSerializer.Serialize(eee));
-
-        if (Environment.TickCount != 0) Environment.Exit(3);
     }
 }

@@ -256,18 +256,6 @@ public static class CounterClient
         Console.WriteLine($"Counter handle: {counterHandle} (encrypted type: {HandleHelper.GetValueType(counterHandle)})");
     }
 
-    public static async Task PrintPublicValueHandle(Config config, FhevmConfig fhevmConfig)
-    {
-        Console.WriteLine($"Retrieving FHECounter contract {config.FHECounterContractAddress}...");
-
-        Contract contract = GetFHECounterContract(config, fhevmConfig);
-
-        byte[] publicValueHandleBytes = await RetrieveCurrentPublicValueHandle(contract);
-        string publicValueHandle = Helpers.To0xHexString(publicValueHandleBytes);
-
-        Console.WriteLine($"PublicValue handle: {publicValueHandle} (encrypted type: {HandleHelper.GetValueType(publicValueHandle)})");
-    }
-
     public static async Task DecryptFHECounterValue(Config config, FhevmConfig fhevmConfig)
     {
         Console.WriteLine($"Retrieving FHECounter contract {config.FHECounterContractAddress}...");
@@ -309,7 +297,7 @@ public static class CounterClient
         Console.WriteLine("Decrypting handle...");
 
         using UserDecrypt decrypt = new(config, fhevmConfig, kmsSigners);
-PublicDecrypt.Test(config, fhevmConfig,  kmsSigners,  kmsSignersThreshold); // TODO-SRE
+
         HandleContractPair[] handleContractPairs =
         [
             new HandleContractPair
@@ -392,6 +380,70 @@ PublicDecrypt.Test(config, fhevmConfig,  kmsSigners,  kmsSignersThreshold); // T
         Console.WriteLine($"New FHE Counter handle: {counterHandle}");
     }
 
+    public static async Task PrintPublicValueHandle(Config config, FhevmConfig fhevmConfig)
+    {
+        Console.WriteLine($"Retrieving FHECounter contract {config.FHECounterContractAddress}...");
+
+        Contract contract = GetFHECounterContract(config, fhevmConfig);
+
+        byte[] publicValueHandleBytes = await RetrieveCurrentPublicValueHandle(contract);
+        string publicValueHandle = Helpers.To0xHexString(publicValueHandleBytes);
+
+        Console.WriteLine($"PublicValue handle: {publicValueHandle} (encrypted type: {HandleHelper.GetValueType(publicValueHandle)})");
+    }
+
+    public static async Task DecryptFHEPublicValueValue(Config config, FhevmConfig fhevmConfig)
+    {
+        Console.WriteLine($"Retrieving FHECounter contract {config.FHECounterContractAddress}...");
+
+        Contract contract = GetFHECounterContract(config, fhevmConfig);
+
+        byte[] counterHandleBytes = await RetrieveCurrentFHECounterHandle(contract);
+        string counterHandle = Helpers.To0xHexString(counterHandleBytes);
+
+        Console.WriteLine("Generating key pair...");
+
+        (string localPublicKey, string localPrivateKey) = GenerateKeyPair();
+
+        Console.WriteLine("Creating EIP-712 typed data...");
+
+        var now = DateTimeOffset.Now;
+
+        TypedData<Domain> typedData = Eip712.Create(
+            fhevmConfig,
+            localPublicKey,
+            contractAddresses: [config.FHECounterContractAddress],
+            startTime: now,
+            durationDays: 365,
+            delegatedAccount: null);
+
+        Console.WriteLine("Signing EIP-712 typed data...");
+
+        var signer = Eip712TypedDataSigner.Current;
+        var ethPrivateKey = new EthECKey(GetEthPrivateKey(config));
+
+        string eip712Signature = signer.SignTypedDataV4(typedData, ethPrivateKey);
+
+        Console.WriteLine($"EIP-712 signature: {eip712Signature}");
+
+        Console.WriteLine("Retrieving KMS signers...");
+
+        (IReadOnlyList<string> kmsSigners, int kmsSignersThreshold) = await GetKMSSigners(config, fhevmConfig);
+
+        Console.WriteLine("Retrieving public value handle...");
+
+        byte[] publicValueHandleBytes = await RetrieveCurrentPublicValueHandle(contract);
+        string publicValueHandle = Helpers.To0xHexString(publicValueHandleBytes);
+
+        Console.WriteLine("Decrypting handle...");
+
+        using PublicDecrypt pd = new(config, fhevmConfig, kmsSigners, kmsSignersThreshold);
+
+        var result = pd.Decrypt([$"{publicValueHandle}"]);
+
+        Console.WriteLine(JsonSerializer.Serialize(result));
+    }
+
     public static async Task<int> Main(string[] args)
     {
         FhevmSepoliaConfig fhevmConfig = new();
@@ -420,18 +472,21 @@ PublicDecrypt.Test(config, fhevmConfig,  kmsSigners,  kmsSignersThreshold); // T
         Command decryptCounterValueCommand = new("decrypt-counter-value", "Decrypt and print FHE counter value.");
         Command incrementCommand = new("increment", "Increment counter.") { valueOption };
         Command decrementCommand = new("decrement", "Decrement counter.") { valueOption };
+        Command decryptPublicValueCommand = new("decrypt-public-value", "Decrypt and print FHE public value.");
 
         rootCommand.Subcommands.Add(printCounterHandleCommand);
         rootCommand.Subcommands.Add(printPublicValueHandleCommand);
         rootCommand.Subcommands.Add(decryptCounterValueCommand);
         rootCommand.Subcommands.Add(incrementCommand);
         rootCommand.Subcommands.Add(decrementCommand);
+        rootCommand.Subcommands.Add(decryptPublicValueCommand);
 
         printCounterHandleCommand.SetAction(async _ => await PrintFHECounterHandle(config, fhevmConfig));
         printPublicValueHandleCommand.SetAction(async _ => await PrintPublicValueHandle(config, fhevmConfig));
         decryptCounterValueCommand.SetAction(async _ => await DecryptFHECounterValue(config, fhevmConfig));
         incrementCommand.SetAction(async parseResult => await AddToFHECounter(config, fhevmConfig, parseResult.GetValue(valueOption)));
         decrementCommand.SetAction(async parseResult => await AddToFHECounter(config, fhevmConfig, -parseResult.GetValue(valueOption)));
+        decryptPublicValueCommand.SetAction(async _ => await DecryptFHEPublicValueValue(config, fhevmConfig));
 
         ParseResult parseResult = rootCommand.Parse(args);
         return parseResult.Invoke();
