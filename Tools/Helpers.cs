@@ -11,7 +11,7 @@ public static class Helpers
     public static string To0xHexString(byte[] value) =>
         "0x" + Convert.ToHexString(value).ToLower();
 
-    public static long DataTimeToTimestamp(DateTimeOffset value) =>
+    public static long DateTimeToTimestamp(DateTimeOffset value) =>
         value.ToUnixTimeSeconds();
 
     public static bool IsThresholdReached(
@@ -31,7 +31,7 @@ public static class Helpers
 
         string? unknownRecoveredAddress = recoveredAddresses.FirstOrDefault(ra => !coprocessorSigners.Contains(ra));
         if (unknownRecoveredAddress != null)
-            throw new InvalidDataException($"Invalid address found: {unknownRecoveredAddress} is not in the list of KMS signers");
+            throw new InvalidDataException($"Invalid address found: {unknownRecoveredAddress} is not in the list of coprocessor signers");
 
         return recoveredAddresses.Count >= _thresholdSigners;
     }

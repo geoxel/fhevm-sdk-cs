@@ -71,7 +71,39 @@ internal static partial class SafeNativeMethods
 
     // Note: cstr can be null
     [LibraryImport(LibraryPath)]
-    public static unsafe partial void TKMS_free_CString(nint cstr);
+    private static partial void TKMS_free_CString(nint cstr);
+
+    public static string TKMS_process_user_decryption_resp_from_cs(
+        nint client,
+        string payloadForVerification,
+        string eip712_domain_json,
+        string agg_resp_json,
+        nint enc_pk,
+        nint enc_sk,
+        bool verify)
+    {
+        nint c_result = IntPtr.Zero;
+        try
+        {
+            int error = TKMS_process_user_decryption_resp_from_cs(
+               client,
+               payloadForVerification,
+               eip712_domain_json,
+               agg_resp_json,
+               enc_pk,
+               enc_sk,
+               verify,
+               out c_result);
+
+            return
+                Marshal.PtrToStringUTF8(c_result)
+                ?? throw new InvalidDataException("Invalid utf-8 response from KMS");
+        }
+        finally
+        {
+            TKMS_free_CString(c_result);
+        }
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct DynamicBufferView

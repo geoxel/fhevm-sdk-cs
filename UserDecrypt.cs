@@ -162,20 +162,17 @@ public sealed class UserDecrypt : Decrypt
         DateTimeOffset startTime,
         int durationDays)
     {
-        using var pubKey = PublicEncKeyMlKem512.Deserialize(Convert.FromHexString(Helpers.Remove0xIfAny(publicKey)));
-        using var privKey = PrivateEncKeyMlKem512.Deserialize(Convert.FromHexString(Helpers.Remove0xIfAny(privateKey)));
-
         // Casting handles if string
         string? signatureSanitized = signature != null ? Helpers.Remove0xIfAny(signature) : null;
         string publicKeySanitized = Helpers.Remove0xIfAny(publicKey);
 
         HandleContractPair[] handles =
             _handles
-            .Select(hc =>
+            .Select(hcp =>
                 new HandleContractPair
                 {
-                    Handle = Helpers.Ensure0xPrefix(hc.Handle),
-                    ContractAddress = AddressHelper.GetChecksumAddress(hc.ContractAddress),
+                    Handle = Helpers.Ensure0xPrefix(hcp.Handle),
+                    ContractAddress = AddressHelper.GetChecksumAddress(hcp.ContractAddress),
                 }
             ).ToArray();
 
@@ -199,7 +196,7 @@ public sealed class UserDecrypt : Decrypt
 
             bool userAllowed = await persistAllowed_Function.CallAsync<bool>(
                 Convert.FromHexString(Helpers.Remove0xIfAny(hcp.Handle)),
-                hcp.ContractAddress);
+                userAddress);
 
             if (!userAllowed)
                 throw new InvalidOperationException($"User {userAddress} is not authorized to user decrypt handle {hcp.Handle}");
@@ -207,6 +204,7 @@ public sealed class UserDecrypt : Decrypt
             bool contractAllowed = await persistAllowed_Function.CallAsync<bool>(
                 Convert.FromHexString(Helpers.Remove0xIfAny(hcp.Handle)),
                 hcp.ContractAddress);
+                
             if (!contractAllowed)
                 throw new InvalidOperationException($"dapp contract {hcp.ContractAddress} is not authorized to user decrypt handle {hcp.Handle}");
         }
@@ -218,7 +216,7 @@ public sealed class UserDecrypt : Decrypt
             handleContractPairs = handles,
             requestValidity = new RelayerUserDecryptPayload.RequestValidity
             {
-                startTimestamp = Helpers.DataTimeToTimestamp(startTime).ToString(CultureInfo.InvariantCulture),
+                startTimestamp = Helpers.DateTimeToTimestamp(startTime).ToString(CultureInfo.InvariantCulture),
                 durationDays = durationDays.ToString(CultureInfo.InvariantCulture),
             },
             contractsChainId = _fhevmConfig.ChainId.ToString(CultureInfo.InvariantCulture),
@@ -235,6 +233,7 @@ public sealed class UserDecrypt : Decrypt
         string payload_json = JsonSerializer.Serialize(payload);
         using StringContent content = new(payload_json, Encoding.UTF8, "application/json");
         using HttpResponseMessage response = await httpClient.PostAsync(pubKeyUrl, content);
+
         response.EnsureSuccessStatusCode(); // throw if not 2xx
 
         string agg_resp_json = await response.Content.ReadAsStringAsync();
@@ -254,32 +253,17 @@ public sealed class UserDecrypt : Decrypt
         string payloadForVerification_json = JsonSerializer.Serialize(payloadForVerification, _json_serialization_options);
 
         using var client = Client.Create(_indexedKmsSigners, userAddress, fheParameter: "default");
+        using var pubKey = PublicEncKeyMlKem512.Deserialize(Convert.FromHexString(Helpers.Remove0xIfAny(publicKey)));
+        using var privKey = PrivateEncKeyMlKem512.Deserialize(Convert.FromHexString(Helpers.Remove0xIfAny(privateKey)));
 
-        string resultJson;
-        nint c_result_json = IntPtr.Zero;
-        try
-        {
-            int error = SafeNativeMethods.TKMS_process_user_decryption_resp_from_cs(
-                client.Handle,
-                payloadForVerification_json,
-                _eip712Domain_json,
-                agg_resp_json,
-                pubKey.Handle,
-                privKey.Handle,
-                verify: true,
-                out c_result_json);
-
-            if (error != 0)
-                throw new KmsException(error);
-
-            resultJson =
-                Marshal.PtrToStringUTF8(c_result_json)
-                ?? throw new InvalidDataException("Invalid utf-8 response from KMS");
-        }
-        finally
-        {
-            SafeNativeMethods.TKMS_free_CString(c_result_json);
-        }
+        string resultJson = SafeNativeMethods.TKMS_process_user_decryption_resp_from_cs(
+            client.Handle,
+            payloadForVerification_json,
+            _eip712Domain_json,
+            agg_resp_json,
+            pubKey.Handle,
+            privKey.Handle,
+            verify: true);
 
         TypedPlaintext[] result =
             JsonSerializer.Deserialize<TypedPlaintext[]>(resultJson, _json_serialization_options)

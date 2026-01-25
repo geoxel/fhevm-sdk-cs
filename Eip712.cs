@@ -1,5 +1,4 @@
 ﻿using Nethereum.ABI.EIP712;
-using Nethereum.Signer;
 using FhevmSDK.Tools;
 
 namespace FhevmSDK;
@@ -54,7 +53,7 @@ public static class Eip712
         [
             new MemberValue { TypeName = "bytes", Value = Helpers.Ensure0xPrefix(publicKey) }, // publicKey
             new MemberValue { TypeName = "address[]", Value = contractAddresses }, // contractAddresses
-            new MemberValue { TypeName = "uint256", Value = Helpers.DataTimeToTimestamp(startTime) }, // startTimestamp
+            new MemberValue { TypeName = "uint256", Value = Helpers.DateTimeToTimestamp(startTime) }, // startTimestamp
             new MemberValue { TypeName = "uint256", Value = durationDays }, // durationDays
             new MemberValue { TypeName = "bytes", Value = extraData }, // extraData 
         ];
