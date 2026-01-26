@@ -246,19 +246,19 @@ public static class CounterClient
 
     public static async Task PrintFHECounterHandle(Config config, FhevmConfig fhevmConfig)
     {
-        Console.WriteLine($"Retrieving FHECounter contract {config.FHECounterContractAddress}...");
+        ConsoleColors.WriteLine($"(CC-CYAN)Retrieving FHECounter contract (CC-GREEN){config.FHECounterContractAddress}(CC-RESET)");
 
         Contract contract = GetFHECounterContract(config, fhevmConfig);
 
         byte[] counterHandleBytes = await RetrieveCurrentFHECounterHandle(contract);
         string counterHandle = Helpers.To0xHexString(counterHandleBytes);
 
-        Console.WriteLine($"Counter handle: {counterHandle} (encrypted type: {HandleHelper.GetValueType(counterHandle)})");
+        ConsoleColors.WriteLine($"(CC-CYAN)Counter handle: (CC-GREEN){counterHandle}(CC-RESET) (encrypted type: (CC-GREEN){HandleHelper.GetValueType(counterHandle)}(CC-RESET))");
     }
 
     public static async Task DecryptFHECounterValue(Config config, FhevmConfig fhevmConfig)
     {
-        Console.WriteLine($"Retrieving FHECounter contract {config.FHECounterContractAddress}...");
+        ConsoleColors.WriteLine($"(CC-CYAN)Retrieving FHECounter contract (CC-GREEN){config.FHECounterContractAddress}(CC-RESET)");
 
         Contract contract = GetFHECounterContract(config, fhevmConfig);
 
@@ -288,7 +288,7 @@ public static class CounterClient
 
         string eip712Signature = signer.SignTypedDataV4(typedData, ethPrivateKey);
 
-        Console.WriteLine($"EIP-712 signature: {eip712Signature}");
+        ConsoleColors.WriteLine($"(CC-CYAN)EIP-712 signature: (CC-GREEN){eip712Signature}(CC-RESET)");
 
         Console.WriteLine("Retrieving KMS signers...");
 
@@ -321,18 +321,18 @@ public static class CounterClient
 
         Console.WriteLine("Success:");
 
-        Console.WriteLine($"Counter handle: {counterHandle} (encrypted type: {HandleHelper.GetValueType(counterHandle)})");
-        Console.WriteLine($"Counter value : {value} (C# type: {value.GetType()})");
+        ConsoleColors.WriteLine($"(CC-CYAN)Counter handle: (CC-GREEN){counterHandle}(CC-RESET) (encrypted type: (CC-GREEN){HandleHelper.GetValueType(counterHandle)}(CC-RESET))");
+        ConsoleColors.WriteLine($"(CC-CYAN)Counter value : (CC-GREEN){value}(CC-RESET) (C# type: (CC-GREEN){value.GetType()}(CC-RESET))");
     }
 
     public static async Task AddToFHECounter(Config config, FhevmConfig fhevmConfig, int value)
     {
-        Console.WriteLine("Retrieving keys from Zama server...");
+        ConsoleColors.WriteLine("Retrieving keys from Zama server...");
 
         using var fhevmKeys = new FhevmKeys();
         FhevmKeys.Keys keys = await fhevmKeys.GetOrDownload(fhevmConfig.RelayerUrl);
 
-        Console.WriteLine($"Encrypting input value ({Math.Abs(value)})...");
+        ConsoleColors.WriteLine($"(CC-CYAN)Encrypting input value: (CC-GREEN)({Math.Abs(value)})(CC-RESET)");
 
         string contractAddress = config.FHECounterContractAddress;
         string userAddress = config.UserAddress;
@@ -351,16 +351,16 @@ public static class CounterClient
             contractAddress,
             userAddress);
 
-        Console.WriteLine($"Encrypted input value handle: {encryptedValues.Handles[0]}");
-        Console.WriteLine($"Encrypted input value proof: {encryptedValues.InputProof}");
+        ConsoleColors.WriteLine($"(CC-CYAN)Encrypted input value handle: (CC-GREEN){encryptedValues.Handles[0]}(CC-RESET)");
+        ConsoleColors.WriteLine($"(CC-CYAN)Encrypted input value proof: (CC-GREEN){encryptedValues.InputProof}(CC-RESET)");
 
-        Console.WriteLine($"Retrieving FHECounter contract {config.FHECounterContractAddress}...");
+        ConsoleColors.WriteLine($"(CC-CYAN)Retrieving FHECounter contract (CC-GREEN){config.FHECounterContractAddress}(CC-RESET)");
 
         Contract contract = GetFHECounterContract(config, fhevmConfig);
 
         string functionName = value >= 0 ? "increment" : "decrement";
 
-        Console.WriteLine($"Calling {functionName}() function...");
+        ConsoleColors.WriteLine($"(CC-CYAN)Calling (CC-GREEN){functionName}()(CC-RESET) function...");
 
         Function inc_dec_Function = contract.GetFunction(functionName);
 
@@ -370,31 +370,31 @@ public static class CounterClient
             Convert.FromHexString(Helpers.Remove0xIfAny(encryptedValues.Handles[0])),
             Convert.FromHexString(Helpers.Remove0xIfAny(encryptedValues.InputProof)));
 
-        Console.WriteLine($"Transaction hash: {txReceipt.TransactionHash}");
-        Console.WriteLine($"Block number: {txReceipt.BlockNumber}");
-        Console.WriteLine($"Gas used: {txReceipt.GasUsed}");
+        ConsoleColors.WriteLine($"(CC-CYAN)Transaction hash: (CC-GREEN){txReceipt.TransactionHash}(CC-RESET)");
+        ConsoleColors.WriteLine($"(CC-CYAN)Block number: (CC-GREEN){txReceipt.BlockNumber}(CC-RESET)");
+        ConsoleColors.WriteLine($"(CC-CYAN)Gas used: (CC-GREEN){txReceipt.GasUsed}(CC-RESET)");
 
         byte[] counterHandleBytes = await RetrieveCurrentFHECounterHandle(contract);
         string counterHandle = Helpers.To0xHexString(counterHandleBytes);
 
-        Console.WriteLine($"New FHE Counter handle: {counterHandle}");
+        ConsoleColors.WriteLine($"(CC-CYAN)New FHE Counter handle: (CC-GREEN){counterHandle}(CC-RESET)");
     }
 
     public static async Task PrintPublicValueHandle(Config config, FhevmConfig fhevmConfig)
     {
-        Console.WriteLine($"Retrieving FHECounter contract {config.FHECounterContractAddress}...");
+        ConsoleColors.WriteLine($"(CC-CYAN)Retrieving FHECounter contract (CC-GREEN){config.FHECounterContractAddress}(CC-RESET)");
 
         Contract contract = GetFHECounterContract(config, fhevmConfig);
 
         byte[] publicValueHandleBytes = await RetrieveCurrentPublicValueHandle(contract);
         string publicValueHandle = Helpers.To0xHexString(publicValueHandleBytes);
 
-        Console.WriteLine($"PublicValue handle: {publicValueHandle} (encrypted type: {HandleHelper.GetValueType(publicValueHandle)})");
+        ConsoleColors.WriteLine($"(CC-CYAN)PublicValue handle: (CC-GREEN){publicValueHandle}(CC-RESET) (encrypted type: (CC-GREEN){HandleHelper.GetValueType(publicValueHandle)}(CC-RESET))");
     }
 
     public static async Task DecryptFHEPublicValueValue(Config config, FhevmConfig fhevmConfig)
     {
-        Console.WriteLine($"Retrieving FHECounter contract {config.FHECounterContractAddress}...");
+        ConsoleColors.WriteLine($"(CC-CYAN)Retrieving FHECounter contract (CC-GREEN){config.FHECounterContractAddress}(CC-RESET)");
 
         Contract contract = GetFHECounterContract(config, fhevmConfig);
 
@@ -424,9 +424,9 @@ public static class CounterClient
 
         string eip712Signature = signer.SignTypedDataV4(typedData, ethPrivateKey);
 
-        Console.WriteLine($"EIP-712 signature: {eip712Signature}");
+        ConsoleColors.WriteLine($"(CC-CYAN)EIP-712 signature: (CC-GREEN){eip712Signature}(CC-RESET)");
 
-        Console.WriteLine("Retrieving KMS signers...");
+        ConsoleColors.WriteLine("(CC-CYAN)Retrieving KMS signers...(CC-RESET)");
 
         (IReadOnlyList<string> kmsSigners, int kmsSignersThreshold) = await GetKMSSigners(config, fhevmConfig);
 
